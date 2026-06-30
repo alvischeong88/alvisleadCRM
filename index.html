@@ -414,6 +414,23 @@ body.p2{--proj:#e5363a;}body.p3{--proj:#9d5cf6;}
         <button class="btn-primary" onclick="saveMasterUrl()">Save URL</button>
       </div>
 
+      <!-- Request Access form (shown when Gmail not registered) -->
+      <div id="request-section" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+        <div style="font-weight:700;font-size:.92rem;margin-bottom:4px;">📝 Request Access</div>
+        <div style="font-size:.8rem;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+          Your Gmail isn't registered yet. Fill this in and your boss will be notified to approve you.
+        </div>
+        <div class="field">
+          <label>Your Name</label>
+          <input id="req-name" type="text" placeholder="e.g. Ahmad Faiz"/>
+        </div>
+        <div class="field">
+          <label>Note (optional)</label>
+          <input id="req-note" type="text" placeholder="e.g. I work on Setia Alam Heights"/>
+        </div>
+        <button class="btn-primary" onclick="submitAccessRequest()">Submit Request</button>
+      </div>
+
       <div class="security-note">
         🔒 Secured by Google OAuth — we never store your password
       </div>
@@ -443,10 +460,16 @@ body.p2{--proj:#e5363a;}body.p3{--proj:#9d5cf6;}
   <div id="boss-header" style="display:none;">
     <div class="boss-hd">
       <span class="boss-crown">👑</span>
-      <div>
+      <div style="flex:1;">
         <div class="boss-title">Boss Dashboard</div>
         <div class="boss-sub" id="boss-sub">All agents · All projects</div>
       </div>
+      <button id="pending-btn" onclick="openRequestsModal()"
+        style="display:none;background:#3a2e00;border:1.5px solid var(--gold);border-radius:20px;
+        padding:6px 13px;color:var(--gold);font-family:var(--sans);font-size:.78rem;font-weight:800;
+        cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;">
+        🔔 <span id="pending-count">0</span> Pending
+      </button>
     </div>
     <div class="boss-bar">
       <span class="boss-bar-lbl">Agent</span>
@@ -476,6 +499,17 @@ body.p2{--proj:#e5363a;}body.p3{--proj:#9d5cf6;}
       <span class="rcnt" id="rcnt"></span>
     </div>
     <div id="leads"></div>
+  </div>
+</div>
+
+<!-- PENDING REQUESTS MODAL (boss only) -->
+<div class="modal-bg hide" id="requests-modal">
+  <div class="modal" style="max-width:460px;">
+    <h3>🔔 Pending Access Requests</h3>
+    <div id="requests-list" style="display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-row" style="margin-top:16px;">
+      <button class="abtn" style="flex:1;justify-content:center;" onclick="document.getElementById('requests-modal').classList.add('hide')">Close</button>
+    </div>
   </div>
 </div>
 
@@ -614,20 +648,34 @@ function showGoogleUser(name, email, picture) {
 }
 
 // ── Auth check against master script ─────────────────────────
+let pendingGmail = '', pendingName = '', pendingPicture = '';
+
 async function authWithMaster(email, name, picture) {
   showStatus('Checking your access…', 'loading');
+  pendingGmail = email; pendingName = name; pendingPicture = picture || '';
+
   try {
     const res  = await fetch(masterUrl + '?action=authCheck&gmail=' + encodeURIComponent(email.toLowerCase()) + '&t=' + Date.now());
     const data = await res.json();
 
     if (!data.authenticated) {
-      showStatus(data.error || 'Access denied. Contact your boss to get registered.', 'error');
       document.getElementById('google-btn-wrap').style.display = 'flex';
       document.getElementById('user-info-row').style.display   = 'none';
+
+      if (data.reason === 'not_registered') {
+        showStatus('Your Gmail (' + email + ') is not registered yet.', 'error');
+        document.getElementById('request-section').style.display = 'block';
+        document.getElementById('req-name').value = name || '';
+      } else if (data.reason === 'pending') {
+        showStatus('⏳ Your access request is pending boss approval. Check back soon!', 'loading');
+      } else {
+        showStatus(data.error || 'Access denied.', 'error');
+      }
       return;
     }
 
     // ✅ Authenticated
+    document.getElementById('request-section').style.display = 'none';
     currentUser = {
       name:      data.name || name,
       email,
@@ -637,7 +685,6 @@ async function authWithMaster(email, name, picture) {
       picture:   picture || '',
     };
 
-    // Save session (8 hours)
     localStorage.setItem('crm_session', JSON.stringify({
       ...currentUser, masterUrl, ts: Date.now()
     }));
@@ -648,6 +695,30 @@ async function authWithMaster(email, name, picture) {
   } catch(e) {
     showStatus('Cannot reach CRM server. Check your Master Script URL.', 'error');
     document.getElementById('google-btn-wrap').style.display = 'flex';
+  }
+}
+
+// ── Submit self-service access request ────────────────────────
+async function submitAccessRequest() {
+  const name = document.getElementById('req-name').value.trim();
+  const note = document.getElementById('req-note').value.trim();
+  if (!name) { toast('Please enter your name', 'err'); return; }
+  if (!pendingGmail) { toast('Please sign in with Google first', 'err'); return; }
+
+  showStatus('Submitting your request…', 'loading');
+  try {
+    const res = await fetch(masterUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'requestAccess', gmail: pendingGmail, name, note })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    document.getElementById('request-section').style.display = 'none';
+    showStatus('✅ Request submitted! Your boss will review and approve you shortly. Try signing in again later.', 'success');
+  } catch(e) {
+    showStatus('Could not submit request: ' + e.message, 'error');
   }
 }
 
@@ -714,6 +785,7 @@ function startApp() {
   if (isBoss) {
     document.getElementById('boss-header').style.display = 'block';
     fetchAllAgents();
+    checkPendingRequests();
   } else {
     fetchAgentLeads(currentUser, false);
   }
@@ -726,12 +798,12 @@ function startApp() {
 function startPolling() {
   clearInterval(pollTimer);
   pollTimer = setInterval(() => {
-    if (currentUser.role === 'boss') fetchAllAgents();
+    if (currentUser.role === 'boss') { fetchAllAgents(); checkPendingRequests(); }
     else fetchAgentLeads(currentUser, false);
   }, POLL_MS);
 }
 function manualRefresh() {
-  if (currentUser.role === 'boss') fetchAllAgents();
+  if (currentUser.role === 'boss') { fetchAllAgents(); checkPendingRequests(); }
   else fetchAgentLeads(currentUser, false);
 }
 
@@ -739,7 +811,7 @@ async function fetchAllAgents() {
   setSyncUI('syncing','Syncing all agents…');
   // Fetch agent list from master
   try{
-    const res  = await fetch(masterUrl+'?action=authCheck&gmail='+encodeURIComponent(currentUser.email)+'&getAll=true&t='+Date.now());
+    const res  = await fetch(masterUrl+'?action=getAllAgents&gmail='+encodeURIComponent(currentUser.email)+'&t='+Date.now());
     const data = await res.json();
     if(data.agents) agentList = data.agents.filter(a=>a.role!=='boss');
   }catch(e){ console.error('fetchAllAgents:',e); }
@@ -819,6 +891,107 @@ function buildBossAgentFilter(){
     ).join('');
 }
 function setAgentFil(name){ activeAgentFil=name; buildBossAgentFilter(); fullRender(); }
+
+// ═══════════════════════════════════════════════════════════════
+//  PENDING ACCESS REQUESTS (boss only)
+// ═══════════════════════════════════════════════════════════════
+let pendingRequests = [];
+
+async function checkPendingRequests(){
+  if(currentUser.role !== 'boss') return;
+  try{
+    const res  = await fetch(masterUrl+'?action=getRequests&gmail='+encodeURIComponent(currentUser.email)+'&t='+Date.now());
+    const data = await res.json();
+    if(data.error) return;
+    pendingRequests = data.requests || [];
+    const btn = document.getElementById('pending-btn');
+    const cnt = document.getElementById('pending-count');
+    if(pendingRequests.length > 0){
+      btn.style.display = 'flex';
+      cnt.textContent = pendingRequests.length;
+    } else {
+      btn.style.display = 'none';
+    }
+  }catch(e){ console.error('checkPendingRequests:', e); }
+}
+
+function openRequestsModal(){
+  renderRequestsList();
+  document.getElementById('requests-modal').classList.remove('hide');
+}
+document.getElementById('requests-modal').addEventListener('click', e=>{
+  if(e.target===e.currentTarget) e.currentTarget.classList.add('hide');
+});
+
+function renderRequestsList(){
+  const el = document.getElementById('requests-list');
+  if(!pendingRequests.length){
+    el.innerHTML = '<div style="text-align:center;padding:30px 10px;color:var(--text3);font-size:.85rem;">No pending requests 🎉</div>';
+    return;
+  }
+  el.innerHTML = pendingRequests.map(req => `
+    <div style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:14px;" id="req-card-${req.rowIndex}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-weight:700;font-size:.92rem;">${esc(req.name)}</div>
+          <div style="font-size:.78rem;color:var(--text2);margin-top:2px;">${esc(req.gmail)}</div>
+        </div>
+        <div style="font-size:.68rem;color:var(--text3);white-space:nowrap;">${esc(req.date)}</div>
+      </div>
+      ${req.note ? `<div style="font-size:.79rem;color:var(--text2);background:var(--bg);border-radius:6px;padding:7px 10px;margin-bottom:10px;">"${esc(req.note)}"</div>` : ''}
+      <div style="margin-bottom:10px;">
+        <label style="display:block;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:5px;">Their Apps Script URL</label>
+        <input id="req-url-${req.rowIndex}" type="url" placeholder="https://script.google.com/macros/s/.../exec"
+          style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;color:var(--text);
+          font-family:var(--mono,monospace);font-size:.78rem;padding:8px 10px;outline:none;"/>
+      </div>
+      <div style="display:flex;gap:7px;">
+        <button class="abtn cta" style="flex:1;justify-content:center;" onclick="approveAgentRequest(${req.rowIndex})">✅ Approve</button>
+        <button class="abtn" style="background:#2a0808;border-color:#5c1a1a;color:#f87171;" onclick="rejectAgentRequest(${req.rowIndex})">✕ Reject</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function approveAgentRequest(rowIndex){
+  const urlInput = document.getElementById('req-url-'+rowIndex);
+  const scriptUrl = urlInput ? urlInput.value.trim() : '';
+  if(!scriptUrl || !scriptUrl.includes('script.google.com')){
+    toast('Please paste their Apps Script URL first','err');
+    urlInput?.focus();
+    return;
+  }
+  try{
+    const res = await fetch(masterUrl,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'approveRequest', bossGmail:currentUser.email, rowIndex, scriptUrl })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    toast(data.message || 'Agent approved!','ok');
+    pendingRequests = pendingRequests.filter(r=>r.rowIndex!==rowIndex);
+    renderRequestsList();
+    document.getElementById('pending-count').textContent = pendingRequests.length;
+    if(!pendingRequests.length) document.getElementById('pending-btn').style.display='none';
+    fetchAllAgents();
+  }catch(e){ toast('Approve failed: '+e.message,'err'); }
+}
+
+async function rejectAgentRequest(rowIndex){
+  try{
+    const res = await fetch(masterUrl,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'rejectRequest', bossGmail:currentUser.email, rowIndex })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    toast('Request rejected','warn');
+    pendingRequests = pendingRequests.filter(r=>r.rowIndex!==rowIndex);
+    renderRequestsList();
+    document.getElementById('pending-count').textContent = pendingRequests.length;
+    if(!pendingRequests.length) document.getElementById('pending-btn').style.display='none';
+  }catch(e){ toast('Reject failed: '+e.message,'err'); }
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  RENDER
