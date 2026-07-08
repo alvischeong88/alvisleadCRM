@@ -521,6 +521,12 @@ const STAB_STYLE={
 // ── STATE ────────────────────────────────────────────────────
 let masterUrl       = 'https://script.google.com/macros/s/AKfycbx_M2NWIvjzODQY4StH_v5gasVwc36VvW4oynoxAeJYf3NTArXgqISFnptkumKvIEyj/exec';
 let currentUser     = null;   // {name,username,role,scriptUrl,color}
+// Fallback agent list — used if master sheet columns not yet updated
+const FALLBACK_AGENTS = [
+  { name:'Bella', username:'bella', role:'agent',
+    scriptUrl:'https://script.google.com/macros/s/AKfycbwkugP1o4yfvoEKgRzNBannS2TacB-8zUaZ8mtQrdvQOCWHIxMk_k7I3olvdykZLy0F/exec',
+    color:'#9d5cf6', active:true },
+];
 let agentList       = [];
 let agentLeads      = {};     // {agentName:{projName:[leads]}}
 let prevSnap        = {};
@@ -680,27 +686,54 @@ function manualRefresh() {
 
 async function fetchAllAgents() {
   setSyncUI('syncing','Syncing all agents…');
+
   // Fetch agent list from master
   try{
-    const res  = await fetch(masterUrl+'?action=getAllAgents&username='+encodeURIComponent(currentUser.username)+'&t='+Date.now());
+    const res  = await fetchWithTimeout(masterUrl+'?action=getAllAgents&username='+encodeURIComponent(currentUser.username)+'&t='+Date.now(), 8000);
     const data = await res.json();
     if(data.agents) agentList = data.agents.filter(a=>a.role!=='boss');
+    // If no agents returned (column mismatch), use fallback
+    if(agentList.length === 0) agentList = FALLBACK_AGENTS;
   }catch(e){ console.error('fetchAllAgents:',e); }
 
-  for(const agent of agentList){
-    if(agent.scriptUrl) await fetchAgentLeads(agent, true);
+  // Only fetch agents who have a valid script URL
+  const activeAgents = agentList.filter(a => a.scriptUrl && a.scriptUrl.includes('script.google.com'));
+
+  if(activeAgents.length === 0){
+    setSyncUI('ok','No agents set up yet');
+    fullRender();
+    return;
   }
+
+  // Load projects from first active agent
+  if(activeAgents[0]) await loadProjects(activeAgents[0]);
+
+  // Fetch leads from each active agent with timeout
+  for(const agent of activeAgents){
+    try{ await fetchAgentLeads(agent, true); }
+    catch(e){ console.error('Skip agent:', agent.name, e); }
+  }
+
   buildBossAgentFilter();
   fullRender();
   setSyncUI('ok','Synced '+nowTime());
 }
 
+// Fetch with timeout to prevent hanging
+function fetchWithTimeout(url, ms=8000) {
+  return Promise.race([
+    fetch(url),
+    new Promise((_,reject) => setTimeout(()=>reject(new Error('Timeout')), ms))
+  ]);
+}
+
 async function fetchAgentLeads(agent, silent) {
-  if (!agent.scriptUrl) return;
+  if (!agent.scriptUrl || !agent.scriptUrl.includes('script.google.com')) return;
   if (!silent) setSyncUI('syncing','Syncing…');
-  const proj = PROJECTS[activeProjIdx];
+  const proj = PROJECTS[activeProjIdx] || PROJECTS[0];
+  if (!proj) return;
   try{
-    const res  = await fetch(agent.scriptUrl+'?action=getLeads&sheet='+encodeURIComponent(proj.name)+'&t='+Date.now());
+    const res  = await fetchWithTimeout(agent.scriptUrl+'?action=getLeads&sheet='+encodeURIComponent(proj.name)+'&t='+Date.now(), 8000);
     const data = await res.json();
     if(data.error) throw new Error(data.error);
     const incoming = data.leads||[];
