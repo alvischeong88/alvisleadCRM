@@ -539,8 +539,7 @@ async function doLogin() {
   const password = document.getElementById('login-password').value;
 
   if (!masterUrl) {
-    showStatus('Please configure your Master Script URL first (see setup below).', 'error');
-    document.getElementById('setup-section').style.display = 'block';
+    showStatus('Cannot reach CRM server. Master URL not configured.', 'error');
     return;
   }
   if (!username || !password) {
@@ -596,20 +595,7 @@ function showStatus(msg, type) {
 // ═══════════════════════════════════════════════════════════════
 //  SETUP URL
 // ═══════════════════════════════════════════════════════════════
-function toggleSetup() {
-  const s = document.getElementById('setup-section');
-  s.style.display = s.style.display === 'none' ? 'block' : 'none';
-}
-function saveMasterUrl() {
-  const url = document.getElementById('master-url-inp').value.trim();
-  if (!url || !url.includes('script.google.com')) {
-    toast('Please enter a valid Apps Script URL', 'err'); return;
-  }
-  masterUrl = url;
-  localStorage.setItem('crm_master_url', url);
-  document.getElementById('setup-section').style.display = 'none';
-  toast('Master URL saved — you can now sign in ✅', 'ok');
-}
+
 
 function signOut() {
   clearInterval(pollTimer);
@@ -1084,7 +1070,7 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 // ═══════════════════════════════════════════════════════════════
 window.onload = () => {
   masterUrl = localStorage.getItem('crm_master_url') || 'https://script.google.com/macros/s/AKfycbx_M2NWIvjzODQY4StH_v5gasVwc36VvW4oynoxAeJYf3NTArXgqISFnptkumKvIEyj/exec';
-  document.getElementById('master-url-inp').value = masterUrl;
+  
 
   const session = JSON.parse(localStorage.getItem('crm_session') || 'null');
   if (session && masterUrl && (Date.now() - session.ts) < 8*3600*1000) {
