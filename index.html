@@ -513,7 +513,7 @@ const STAB_STYLE={
 };
 
 // ── STATE ────────────────────────────────────────────────────
-let masterUrl       = '';
+let masterUrl       = 'https://script.google.com/macros/s/AKfycbx_M2NWIvjzODQY4StH_v5gasVwc36VvW4oynoxAeJYf3NTArXgqISFnptkumKvIEyj/exec';
 let currentUser     = null;   // {name,username,role,scriptUrl,color}
 let agentList       = [];
 let agentLeads      = {};     // {agentName:{projName:[leads]}}
@@ -1051,8 +1051,8 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 //  INIT — restore session or show login
 // ═══════════════════════════════════════════════════════════════
 window.onload = () => {
-  masterUrl = localStorage.getItem('crm_master_url') || '';
-  if (masterUrl) document.getElementById('master-url-inp').value = masterUrl;
+  masterUrl = localStorage.getItem('crm_master_url') || 'https://script.google.com/macros/s/AKfycbx_M2NWIvjzODQY4StH_v5gasVwc36VvW4oynoxAeJYf3NTArXgqISFnptkumKvIEyj/exec';
+  document.getElementById('master-url-inp').value = masterUrl;
 
   const session = JSON.parse(localStorage.getItem('crm_session') || 'null');
   if (session && masterUrl && (Date.now() - session.ts) < 8*3600*1000) {
