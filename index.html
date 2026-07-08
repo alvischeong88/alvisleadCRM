@@ -544,11 +544,14 @@ async function doLogin() {
 
   showStatus('Signing in…', 'loading');
   try {
-    const res = await fetch(masterUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'login', username, password })
-    });
+    // Use GET to avoid CORS issues with Google Apps Script
+    const url = masterUrl
+      + '?action=login'
+      + '&username=' + encodeURIComponent(username.toLowerCase())
+      + '&password=' + encodeURIComponent(password)
+      + '&t=' + Date.now();
+
+    const res  = await fetch(url);
     const data = await res.json();
 
     if (!data.authenticated) {
@@ -556,7 +559,6 @@ async function doLogin() {
       return;
     }
 
-    // ✅ Authenticated
     currentUser = {
       name:      data.name || username,
       username,
@@ -574,6 +576,7 @@ async function doLogin() {
 
   } catch(e) {
     showStatus('Cannot reach CRM server. Check your Master Script URL.', 'error');
+    console.error('Login error:', e);
   }
 }
 
