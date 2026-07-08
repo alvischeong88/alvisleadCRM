@@ -490,12 +490,17 @@ body.p2{--proj:#e5363a;}body.p3{--proj:#9d5cf6;}
 <div id="toast"></div>
 
 <script>
-const PROJECTS = [
-  {name:"new customer DPARC",label:"DPARC",emoji:"🏢",cls:"p0"},
-  {name:"new customer ABC",  label:"ABC",  emoji:"🏗", cls:"p1"},
-  {name:"new customer SAH",  label:"SAH",  emoji:"🏘", cls:"p2"},
-  {name:"new customer MKG",  label:"MKG",  emoji:"🌿", cls:"p3"},
-];
+// Projects loaded dynamically from agent's sheet tabs
+// No hardcoding needed — agent adds tabs freely
+let PROJECTS = [];  // filled by loadProjects()
+
+function makeProjectMeta(name, idx) {
+  const emojis  = ['🏢','🏗','🏘','🌿','🏙','🏬','🌆','🏦'];
+  const classes = ['p0','p1','p2','p3','p0','p1','p2','p3'];
+  // Shorten label: take first word or first 6 chars
+  const label = name.replace(/new customer /i,'').split(' ')[0].slice(0,8).toUpperCase();
+  return { name, label, emoji: emojis[idx%8], cls: classes[idx%8] };
+}
 
 const STATUSES=[
   "NEW","FOLLOW UP","FOLLOW UP APPT","APPOINTMENT",
@@ -619,6 +624,22 @@ function signOut() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  DYNAMIC PROJECT LOADING
+// ═══════════════════════════════════════════════════════════════
+async function loadProjects(agent) {
+  const url = agent.scriptUrl + '?action=getProjects&t=' + Date.now();
+  try {
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (data.projects && data.projects.length) {
+      PROJECTS = data.projects.map((p, i) => makeProjectMeta(p.name, i));
+      buildProjTabs();
+      buildStatusFilters();
+    }
+  } catch(e) { console.error('loadProjects:', e); }
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  APP START
 // ═══════════════════════════════════════════════════════════════
 function startApp() {
@@ -641,8 +662,13 @@ function startApp() {
 
   if (isBoss) {
     document.getElementById('boss-header').style.display = 'block';
+    // Boss sees all agents — load projects from first agent with a scriptUrl
+    const firstAgent = agentList.find(a => a.scriptUrl);
+    if (firstAgent) await loadProjects(firstAgent);
     fetchAllAgents();
   } else {
+    // Agent — load their own projects first, then leads
+    await loadProjects(currentUser);
     fetchAgentLeads(currentUser, false);
   }
   startPolling();
@@ -660,7 +686,9 @@ function startPolling() {
 }
 function manualRefresh() {
   if (currentUser.role === 'boss') fetchAllAgents();
-  else fetchAgentLeads(currentUser, false);
+  else {
+    loadProjects(currentUser).then(() => fetchAgentLeads(currentUser, false));
+  }
 }
 
 async function fetchAllAgents() {
