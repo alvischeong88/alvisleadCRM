@@ -951,10 +951,16 @@ async function saveLead(id,rowIndex,status,newRemark){
   if(!currentUser.scriptUrl){ toast('Updated (no script configured)','warn'); return; }
   setSyncUI('syncing','Saving…');
   try{
-    const res=await fetch(currentUser.scriptUrl,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'updateLead',rowIndex,sheet:proj.name,status,newRemark,agent:currentUser.name})
-    });
+    // Use GET to avoid CORS issues
+    const getUrl = currentUser.scriptUrl
+      + '?action=updateLead'
+      + '&rowIndex=' + rowIndex
+      + '&sheet=' + encodeURIComponent(proj.name)
+      + '&status=' + encodeURIComponent(status)
+      + '&newRemark=' + encodeURIComponent(newRemark||'')
+      + '&agent=' + encodeURIComponent(currentUser.name)
+      + '&t=' + Date.now();
+    const res=await fetch(getUrl);
     const data=await res.json();
     if(data.error) throw new Error(data.error);
     buildSnap(); setSyncUI('ok','Saved '+nowTime());
@@ -992,8 +998,14 @@ async function logAction(leadId,rowIndex,agentName,action,tsField){
   const url=currentUser.role==='boss'?(agentList.find(a=>a.name===aName)||{}).scriptUrl:currentUser.scriptUrl;
   if(!url) return;
   try{
-    await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action,rowIndex,sheet:proj.name,agent:currentUser.name})});
+    // Use GET to avoid CORS issues with Google Apps Script
+    const getUrl = url
+      + '?action=' + action
+      + '&rowIndex=' + rowIndex
+      + '&sheet=' + encodeURIComponent(proj.name)
+      + '&agent=' + encodeURIComponent(currentUser.name)
+      + '&t=' + Date.now();
+    await fetch(getUrl);
     buildSnap();
   }catch(e){ console.error('logAction:',e); }
 }
@@ -1024,8 +1036,15 @@ async function submitAddLead(){
   }
   setSyncUI('syncing','Adding…');
   try{
-    const res=await fetch(currentUser.scriptUrl,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'addLead',sheet:proj.name,name,contact,status,remarks})});
+    const getUrl = currentUser.scriptUrl
+      + '?action=addLead'
+      + '&sheet=' + encodeURIComponent(proj.name)
+      + '&name=' + encodeURIComponent(name||'')
+      + '&contact=' + encodeURIComponent(contact||'')
+      + '&status=' + encodeURIComponent(status||'NEW')
+      + '&remarks=' + encodeURIComponent(remarks||'')
+      + '&t=' + Date.now();
+    const res=await fetch(getUrl);
     const data=await res.json();
     if(data.error) throw new Error(data.error);
     toast((name||contact)+' added ✅','ok');
