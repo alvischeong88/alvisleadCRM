@@ -730,21 +730,53 @@ function fetchWithTimeout(url, ms=8000) {
 async function fetchAgentLeads(agent, silent) {
   if (!agent.scriptUrl || !agent.scriptUrl.includes('script.google.com')) return;
   if (!silent) setSyncUI('syncing','Syncing…');
-  const proj = PROJECTS[activeProjIdx] || PROJECTS[0];
-  if (!proj) return;
+
   try{
-    const res  = await fetchWithTimeout(agent.scriptUrl+'?action=getLeads&sheet='+encodeURIComponent(proj.name)+'&t='+Date.now(), 8000);
+    // Use getAllLeads to get ALL tabs at once — no project name needed
+    const res = await fetchWithTimeout(
+      agent.scriptUrl + '?action=getAllLeads&t=' + Date.now(), 10000
+    );
     const data = await res.json();
     if(data.error) throw new Error(data.error);
-    const incoming = data.leads||[];
-    incoming.forEach(l=>{ l.agentName=agent.name; l.agentColor=agent.color||'#3b7fff'; });
-    const changed = detectChanges(agent.name, proj.name, incoming);
-    if(!agentLeads[agent.name]) agentLeads[agent.name]={};
-    agentLeads[agent.name][proj.name]=incoming;
+
+    if(!agentLeads[agent.name]) agentLeads[agent.name] = {};
+
+    // Store leads per project
+    const allLeadsData = data.allLeads || {};
+    Object.keys(allLeadsData).forEach(projName => {
+      const incoming = allLeadsData[projName] || [];
+      incoming.forEach(l => {
+        l.agentName  = agent.name;
+        l.agentColor = agent.color || '#3b7fff';
+      });
+      const changed = detectChanges(agent.name, projName, incoming);
+      agentLeads[agent.name][projName] = incoming;
+      if(!silent && changed.length) toast(changed.length + ' updated', 'inf');
+    });
+
     buildSnap();
-    if(!silent){ fullRender(changed); setSyncUI('ok','Synced '+nowTime()); if(changed.length) toast(changed.length+' updated','inf'); }
+    if(!silent){
+      fullRender();
+      setSyncUI('ok', 'Synced ' + nowTime());
+    }
   }catch(e){
-    if(!silent){ setSyncUI('error','Sync failed'); console.error(e); }
+    // Fallback: try fetching current project only
+    try{
+      const proj = PROJECTS[activeProjIdx] || PROJECTS[0];
+      if(!proj) return;
+      const res2 = await fetchWithTimeout(
+        agent.scriptUrl + '?action=getLeads&sheet=' + encodeURIComponent(proj.name) + '&t=' + Date.now(), 8000
+      );
+      const data2 = await res2.json();
+      if(!data2.error){
+        const incoming = data2.leads || [];
+        incoming.forEach(l => { l.agentName=agent.name; l.agentColor=agent.color||'#3b7fff'; });
+        if(!agentLeads[agent.name]) agentLeads[agent.name]={};
+        agentLeads[agent.name][proj.name] = incoming;
+        buildSnap();
+      }
+    }catch(e2){ console.error('fetchAgentLeads fallback failed:', agent.name, e2); }
+    if(!silent){ setSyncUI('error','Sync failed'); }
   }
 }
 
@@ -764,7 +796,12 @@ function switchProj(idx){
   document.querySelectorAll('.stab').forEach(t=>t.classList.toggle('active',t.dataset.s==='All'));
   document.body.className=(currentUser.role==='boss'?'role-boss':'role-agent ')+PROJECTS[idx].cls;
   document.getElementById('search').value='';
-  if(currentUser.role==='boss') fetchAllAgents(); else fetchAgentLeads(currentUser,false);
+  if(currentUser.role==='boss'){
+    // For boss — just re-render with existing data for this project
+    fullRender();
+  } else {
+    fetchAgentLeads(currentUser, false);
+  }
 }
 
 function buildStatusFilters(){
@@ -794,7 +831,23 @@ function buildBossAgentFilter(){
         onclick="setAgentFil('${esc(a.name)}')">${esc(a.name)}</div>`
     ).join('');
 }
-function setAgentFil(name){ activeAgentFil=name; buildBossAgentFilter(); fullRender(); }
+async function setAgentFil(name) {
+  activeAgentFil = name;
+  activeProjIdx  = 0;
+  openId         = null;
+  buildBossAgentFilter();
+
+  // Load projects from the selected agent's sheet
+  if (name === 'All') {
+    // Show first active agent's projects
+    const first = agentList.find(a => a.scriptUrl && a.scriptUrl.includes('script.google.com'));
+    if (first) await loadProjects(first);
+  } else {
+    const agent = agentList.find(a => a.name === name);
+    if (agent && agent.scriptUrl) await loadProjects(agent);
+  }
+  fullRender();
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  RENDER
@@ -813,14 +866,32 @@ function buildSnap(){
 }
 
 function getVisible(){
-  const proj=PROJECTS[activeProjIdx];
-  const isBoss=currentUser.role==='boss';
-  let leads=[];
+  const isBoss = currentUser.role === 'boss';
+  const proj   = PROJECTS[activeProjIdx];
+  let leads    = [];
+
   if(isBoss){
-    const agents=activeAgentFil==='All'?agentList:agentList.filter(a=>a.name===activeAgentFil);
-    agents.forEach(a=>{ leads=leads.concat((agentLeads[a.name]||{})[proj.name]||[]); });
+    const agents = activeAgentFil === 'All'
+      ? agentList
+      : agentList.filter(a => a.name === activeAgentFil);
+
+    if(proj){
+      // Show leads for the selected project tab
+      agents.forEach(a => {
+        leads = leads.concat((agentLeads[a.name]||{})[proj.name]||[]);
+      });
+    } else {
+      // No project selected — show all leads from all projects
+      agents.forEach(a => {
+        const aData = agentLeads[a.name] || {};
+        Object.values(aData).forEach(projLeads => {
+          leads = leads.concat(projLeads || []);
+        });
+      });
+    }
   } else {
-    leads=(agentLeads[currentUser.name]||{})[proj.name]||[];
+    // Agent sees their own project
+    leads = proj ? (agentLeads[currentUser.name]||{})[proj.name]||[] : [];
   }
   return leads;
 }
