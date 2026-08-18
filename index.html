@@ -541,54 +541,73 @@ const POLL_MS       = 30000;
 //  USERNAME / PASSWORD LOGIN
 // ═══════════════════════════════════════════════════════════════
 async function doLogin() {
-  const username = document.getElementById('login-username').value.trim();
-  const password = document.getElementById('login-password').value;
+  const username = document.getElementById('login-username').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value.trim();
 
-  if (!masterUrl) {
-    showStatus('Cannot reach CRM server. Master URL not configured.', 'error');
-    return;
-  }
   if (!username || !password) {
     showStatus('Please enter both username and password.', 'error');
     return;
   }
 
   showStatus('Signing in…', 'loading');
+
+  const url = masterUrl
+    + '?action=login'
+    + '&username=' + encodeURIComponent(username)
+    + '&password=' + encodeURIComponent(password)
+    + '&t=' + Date.now();
+
+  let data = null;
+
+  // Try method 1: normal fetch
   try {
-    // Use GET to avoid CORS issues with Google Apps Script
-    const url = masterUrl
-      + '?action=login'
-      + '&username=' + encodeURIComponent(username.toLowerCase())
-      + '&password=' + encodeURIComponent(password)
-      + '&t=' + Date.now();
-
-    const res  = await fetch(url);
-    const data = await res.json();
-
-    if (!data.authenticated) {
-      showStatus(data.error || 'Login failed.', 'error');
-      return;
-    }
-
-    currentUser = {
-      name:      data.name || username,
-      username,
-      role:      data.role || 'agent',
-      scriptUrl: data.scriptUrl || '',
-      color:     data.color || '#3b7fff',
-    };
-
-    localStorage.setItem('crm_session', JSON.stringify({
-      ...currentUser, masterUrl, ts: Date.now()
-    }));
-
-    showStatus('Welcome, ' + currentUser.name + '! Loading your leads…', 'success');
-    setTimeout(startApp, 500);
-
-  } catch(e) {
-    showStatus('Cannot reach CRM server. Check your Master Script URL.', 'error');
-    console.error('Login error:', e);
+    const res = await fetch(url, { redirect: 'follow' });
+    const text = await res.text();
+    // Find JSON in response (Google sometimes wraps it)
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) data = JSON.parse(match[0]);
+  } catch(e1) {
+    console.warn('Fetch method 1 failed:', e1.message);
   }
+
+  // Try method 2: no-cors mode fallback (last resort)
+  if (!data) {
+    try {
+      const res = await fetch(url, { mode: 'no-cors', redirect: 'follow' });
+      // no-cors returns opaque response — try reading anyway
+      const text = await res.text().catch(() => '');
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) data = JSON.parse(match[0]);
+    } catch(e2) {
+      console.warn('Fetch method 2 failed:', e2.message);
+    }
+  }
+
+  if (!data) {
+    showStatus('Cannot reach CRM server. Please check your internet connection and try again.', 'error');
+    return;
+  }
+
+  if (!data.authenticated) {
+    showStatus(data.error || 'Login failed. Please check your username and password.', 'error');
+    return;
+  }
+
+  // ✅ Login successful
+  currentUser = {
+    name:      data.name || username,
+    username,
+    role:      data.role || 'agent',
+    scriptUrl: data.scriptUrl || '',
+    color:     data.color || '#3b7fff',
+  };
+
+  localStorage.setItem('crm_session', JSON.stringify({
+    ...currentUser, masterUrl, ts: Date.now()
+  }));
+
+  showStatus('Welcome, ' + currentUser.name + '! Loading your leads…', 'success');
+  setTimeout(startApp, 500);
 }
 
 function showStatus(msg, type) {
@@ -1196,7 +1215,7 @@ window.onload = () => {
   
 
   const session = JSON.parse(localStorage.getItem('crm_session') || 'null');
-  if (session && masterUrl && (Date.now() - session.ts) < 8*3600*1000) {
+  if (session && masterUrl && (Date.now() - session.ts) < 30*24*3600*1000) {
     currentUser = { name:session.name, username:session.username, role:session.role,
                     scriptUrl:session.scriptUrl, color:session.color||'#3b7fff' };
     startApp();
