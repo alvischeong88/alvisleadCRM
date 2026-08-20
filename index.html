@@ -520,6 +520,24 @@ const STAB_STYLE={
 
 // ── STATE ────────────────────────────────────────────────────
 let masterUrl       = 'https://script.google.com/macros/s/AKfycbx_M2NWIvjzODQY4StH_v5gasVwc36VvW4oynoxAeJYf3NTArXgqISFnptkumKvIEyj/exec';
+
+// ── CACHE CONFIG ─────────────────────────────────────────────
+const CACHE_KEY     = u => 'crm_cache_' + u;
+const CACHE_MAX_AGE = 5 * 60 * 1000;  // 5 minutes
+const POLL_MS       = 5 * 60 * 1000;  // poll every 5 minutes (was 30s)
+
+function saveCache(username, data) {
+  try { localStorage.setItem(CACHE_KEY(username), JSON.stringify({ data, ts: Date.now() })); } catch(e){}
+}
+function loadCache(username) {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY(username));
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_MAX_AGE) return null; // stale
+    return data;
+  } catch(e){ return null; }
+}
 let currentUser     = null;   // {name,username,role,scriptUrl,color}
 // Fallback agent list — used if master sheet columns not yet updated
 const FALLBACK_AGENTS = [
@@ -535,7 +553,6 @@ let activeStatus    = 'All';
 let activeAgentFil  = 'All';
 let openId          = null;
 let pollTimer       = null;
-const POLL_MS       = 30000;
 
 // ═══════════════════════════════════════════════════════════════
 //  USERNAME / PASSWORD LOGIN
@@ -679,9 +696,22 @@ async function startApp() {
     if (firstAgent) await loadProjects(firstAgent);
     fetchAllAgents();
   } else {
-    // Agent — load their own projects first, then leads
-    await loadProjects(currentUser);
-    fetchAgentLeads(currentUser, false);
+    // Agent — show cache instantly, sync in background
+    const cached = loadCache(currentUser.username);
+    if (cached && cached.agentLeads) {
+      agentLeads = cached.agentLeads;
+      if (cached.projects && cached.projects.length) {
+        PROJECTS = cached.projects;
+        buildProjTabs();
+        buildStatusFilters();
+      }
+      fullRender();
+      setSyncUI('ok', 'Cached · ' + (cached.time||''));
+    }
+    // Always sync fresh in background (silent if cache shown)
+    loadProjects(currentUser).then(() => {
+      fetchAgentLeads(currentUser, !!cached);
+    });
   }
   startPolling();
 }
@@ -704,46 +734,82 @@ function manualRefresh() {
 }
 
 async function fetchAllAgents() {
-  setSyncUI('syncing','Syncing all agents…');
+  setSyncUI('syncing', 'Syncing…');
 
-  // Fetch agent list from master
-  try{
-    const res  = await fetchWithTimeout(masterUrl+'?action=getAllAgents&username='+encodeURIComponent(currentUser.username)+'&t='+Date.now(), 8000);
+  // Step 1 — Load from cache first (instant display)
+  const cached = loadCache('boss_' + currentUser.username);
+  if (cached) {
+    agentLeads = cached.agentLeads || {};
+    agentList  = cached.agentList  || agentList;
+    buildBossAgentFilter();
+    fullRender();
+    setSyncUI('ok', 'Cached · ' + cached.time);
+  }
+
+  // Step 2 — Fetch fresh agent list from master
+  try {
+    const res  = await fetchWithTimeout(masterUrl + '?action=getAllAgents&username=' + encodeURIComponent(currentUser.username) + '&t=' + Date.now(), 8000);
     const data = await res.json();
-    if(data.agents) agentList = data.agents.filter(a=>a.role!=='boss');
-    // If no agents returned (column mismatch), use fallback
-    if(agentList.length === 0) agentList = FALLBACK_AGENTS;
-  }catch(e){ console.error('fetchAllAgents:',e); }
+    if (data.agents) agentList = data.agents.filter(a => a.role !== 'boss');
+    // Use fallback if master returns empty
+    if (agentList.length === 0) agentList = FALLBACK_AGENTS;
+  } catch(e) {
+    console.error('fetchAllAgents master:', e);
+    if (agentList.length === 0) agentList = FALLBACK_AGENTS;
+  }
 
-  // Only fetch agents who have a valid script URL
   const activeAgents = agentList.filter(a => a.scriptUrl && a.scriptUrl.includes('script.google.com'));
-
-  if(activeAgents.length === 0){
-    setSyncUI('ok','No agents set up yet');
+  if (activeAgents.length === 0) {
+    setSyncUI('ok', 'No agents set up yet');
     fullRender();
     return;
   }
 
-  // Load projects from first active agent
-  if(activeAgents[0]) await loadProjects(activeAgents[0]);
+  // Load projects from first agent
+  if (activeAgents[0]) await loadProjects(activeAgents[0]);
 
-  // Fetch leads from each active agent with timeout
-  for(const agent of activeAgents){
-    try{ await fetchAgentLeads(agent, true); }
-    catch(e){ console.error('Skip agent:', agent.name, e); }
-  }
+  // Step 3 — Fetch ALL agents IN PARALLEL (much faster than sequential)
+  setSyncUI('syncing', 'Fetching ' + activeAgents.length + ' agents…');
+  await Promise.allSettled(activeAgents.map(agent => fetchAgentLeadsParallel(agent)));
+
+  // Step 4 — Save to cache
+  saveCache('boss_' + currentUser.username, {
+    agentLeads, agentList,
+    time: nowTime()
+  });
 
   buildBossAgentFilter();
   fullRender();
-  setSyncUI('ok','Synced '+nowTime());
+  setSyncUI('ok', 'Synced ' + nowTime());
 }
 
-// Fetch with timeout to prevent hanging
+// Fetch with timeout to prevent hanging on slow agents
 function fetchWithTimeout(url, ms=8000) {
   return Promise.race([
-    fetch(url),
-    new Promise((_,reject) => setTimeout(()=>reject(new Error('Timeout')), ms))
+    fetch(url, { redirect: 'follow' }),
+    new Promise((_,reject) => setTimeout(()=>reject(new Error('Timeout after '+ms+'ms')), ms))
   ]);
+}
+
+// Parallel version — doesn't block others if one fails
+async function fetchAgentLeadsParallel(agent) {
+  if (!agent.scriptUrl || !agent.scriptUrl.includes('script.google.com')) return;
+  try {
+    const res  = await fetchWithTimeout(agent.scriptUrl + '?action=getAllLeads&t=' + Date.now(), 10000);
+    const data = await res.json();
+    if (data.error) return;
+
+    if (!agentLeads[agent.name]) agentLeads[agent.name] = {};
+    const allLeadsData = data.allLeads || {};
+    Object.keys(allLeadsData).forEach(projName => {
+      const incoming = allLeadsData[projName] || [];
+      incoming.forEach(l => { l.agentName = agent.name; l.agentColor = agent.color || '#3b7fff'; });
+      agentLeads[agent.name][projName] = incoming;
+    });
+    buildSnap();
+  } catch(e) {
+    console.warn('Skip agent (timeout/error):', agent.name);
+  }
 }
 
 async function fetchAgentLeads(agent, silent) {
@@ -774,6 +840,16 @@ async function fetchAgentLeads(agent, silent) {
     });
 
     buildSnap();
+
+    // Save to cache for instant load next time
+    if (currentUser.role !== 'boss') {
+      saveCache(currentUser.username, {
+        agentLeads,
+        projects: PROJECTS,
+        time: nowTime()
+      });
+    }
+
     if(!silent){
       fullRender();
       setSyncUI('ok', 'Synced ' + nowTime());
