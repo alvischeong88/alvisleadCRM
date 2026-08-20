@@ -353,6 +353,16 @@ body.p2{--proj:#e5363a;}body.p3{--proj:#9d5cf6;}
 .modal-row{display:flex;gap:8px;}
 .modal-row .abtn{flex:1;justify-content:center;padding:10px;font-size:.88rem;}
 
+
+/* CUSTOMER PROFILE */
+.profile-section{border-top:1px solid var(--border);padding:10px 14px;background:linear-gradient(135deg,#0a1020,#0d1428);}
+.profile-label{font-size:.67rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--purple);margin-bottom:7px;display:flex;align-items:center;gap:5px;}
+.profile-content{font-size:.82rem;color:var(--text2);line-height:1.7;white-space:pre-wrap;word-break:break-word;}
+.profile-empty{font-size:.8rem;color:var(--text3);font-style:italic;}
+.profile-textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:.83rem;padding:9px 12px;resize:vertical;min-height:70px;outline:none;line-height:1.65;margin-top:6px;}
+.profile-textarea:focus{border-color:var(--purple);}
+.profile-edit-row{display:flex;gap:7px;margin-top:8px;}
+
 .sbox{text-align:center;padding:52px 20px;color:var(--text2);}
 .spin{width:30px;height:30px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -478,6 +488,11 @@ body.p2{--proj:#e5363a;}body.p3{--proj:#9d5cf6;}
     <div class="field"><label>Status</label><select id="m-status"></select></div>
     <div class="field"><label>Remarks</label>
       <textarea id="m-remarks" placeholder="Initial notes…"
+        style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;
+        color:var(--text);font-family:var(--sans);font-size:.87rem;padding:9px 11px;resize:vertical;min-height:56px;outline:none;"></textarea>
+    </div>
+    <div class="field"><label>👤 Customer Profile (optional)</label>
+      <textarea id="m-profile" placeholder="Free-form profile notes&#10;e.g. IC: 900101-XX | Income: RM5k | Budget: RM400k | Renting in Cheras"
         style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;
         color:var(--text);font-family:var(--sans);font-size:.87rem;padding:9px 11px;resize:vertical;min-height:56px;outline:none;"></textarea>
     </div>
@@ -1065,6 +1080,19 @@ function render(flashIds=[]){
         </div>
       </div>
       ${lead.remarks?`<div class="lremarks">${esc(lead.remarks)}</div>`:''}
+      <div class="profile-section">
+        <div class="profile-label">👤 Customer Profile</div>
+        ${isOpen && !isBoss ? `
+          <textarea class="profile-textarea" id="prof-${esc(lead.id)}"
+            placeholder="Free-form profile notes&#10;e.g. IC: 900101-XX | Income: RM5k | Budget: RM400k | Renting in Cheras | Family: 3"
+            >${esc(lead.profile||'')}</textarea>
+          <div class="profile-edit-row">
+            <button class="abtn" style="background:var(--purple);border-color:var(--purple);color:#fff;font-size:.78rem;"
+              onclick="saveProfile('${esc(lead.id)}',${lead.rowIndex})">💾 Save Profile</button>
+          </div>
+        ` : lead.profile ? `<div class="profile-content">${esc(lead.profile)}</div>`
+          : `<div class="profile-empty">No profile yet${isBoss?'':' — tap lead to add'}</div>`}
+      </div>
       ${activityBlock(lead)}
       ${isOpen?`
       <div class="lacts">
@@ -1093,6 +1121,35 @@ function doSave(id,rowIndex){
   const status=document.getElementById('sel-'+id)?.value;
   const remark=document.getElementById('txt-'+id)?.value||'';
   if(status) saveLead(id,rowIndex,status,remark);
+}
+
+async function saveProfile(id, rowIndex){
+  const proj    = PROJECTS[activeProjIdx];
+  const textarea= document.getElementById('prof-'+id);
+  if(!textarea) return;
+  const profile = textarea.value;
+  const lead    = ((agentLeads[currentUser.name]||{})[proj.name]||[]).find(l=>l.id===id);
+  if(lead) lead.profile = profile;
+  render();
+  if(!currentUser.scriptUrl){ toast('Profile saved (local only)','warn'); return; }
+  setSyncUI('syncing','Saving profile…');
+  try{
+    const url = currentUser.scriptUrl
+      + '?action=updateLead'
+      + '&rowIndex=' + rowIndex
+      + '&sheet=' + encodeURIComponent(proj.name)
+      + '&status=' + encodeURIComponent(lead?.status||'NEW')
+      + '&profile=' + encodeURIComponent(profile)
+      + '&agent=' + encodeURIComponent(currentUser.name)
+      + '&t=' + Date.now();
+    const res  = await fetch(url);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    setSyncUI('ok','Profile saved '+nowTime());
+    toast('Customer profile saved ✅','ok');
+    const card = document.getElementById('c-'+id);
+    if(card){ card.classList.add('flash'); setTimeout(()=>card.classList.remove('flash'),800); }
+  }catch(e){ setSyncUI('error','Save failed'); toast('Save failed: '+e.message,'err'); }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1180,7 +1237,7 @@ async function logAction(leadId,rowIndex,agentName,action,tsField){
 //  ADD LEAD
 // ═══════════════════════════════════════════════════════════════
 function openAddModal(){
-  ['m-name','m-contact','m-remarks'].forEach(id=>document.getElementById(id).value='');
+  ['m-name','m-contact','m-remarks','m-profile'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('m-status').value='NEW';
   document.getElementById('add-modal').classList.remove('hide');
 }
@@ -1191,6 +1248,7 @@ async function submitAddLead(){
   const contact=document.getElementById('m-contact').value.trim();
   const status=document.getElementById('m-status').value;
   const remarks=document.getElementById('m-remarks').value.trim();
+  const profile=document.getElementById('m-profile').value.trim();
   if(!contact){ toast('Please enter a contact number','err'); return; }
   document.getElementById('add-modal').classList.add('hide');
   if(!currentUser.scriptUrl){
@@ -1209,6 +1267,7 @@ async function submitAddLead(){
       + '&contact=' + encodeURIComponent(contact||'')
       + '&status=' + encodeURIComponent(status||'NEW')
       + '&remarks=' + encodeURIComponent(remarks||'')
+      + '&profile=' + encodeURIComponent(profile||'')
       + '&t=' + Date.now();
     const res=await fetch(getUrl);
     const data=await res.json();
