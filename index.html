@@ -382,6 +382,97 @@ body.p2{--proj:#e5363a;}body.p3{--proj:#9d5cf6;}
   .login-card{padding:24px 18px;}
   .tl-name{display:none;}
 }
+
+/* ── BLAST MODE ── */
+.blast-bar{
+  background:linear-gradient(135deg,#061a0e,#0a1f14);
+  border-bottom:2px solid var(--wa);
+  padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  position:sticky;top:54px;z-index:250;
+}
+.blast-bar.hide{display:none;}
+.blast-count{
+  background:var(--wa);color:#fff;border-radius:20px;
+  padding:4px 12px;font-size:.8rem;font-weight:800;white-space:nowrap;
+}
+.blast-actions{display:flex;gap:7px;flex-wrap:wrap;flex:1;}
+.bbtn{
+  background:var(--s2);border:1.5px solid var(--border);border-radius:8px;
+  color:var(--text2);font-family:var(--sans);font-size:.78rem;font-weight:700;
+  padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:5px;
+  transition:all .15s;white-space:nowrap;
+}
+.bbtn:hover{border-color:var(--wa);color:var(--wa);}
+.bbtn.wa{background:var(--wa);border-color:var(--wa);color:#fff;}
+.bbtn.wa:hover{opacity:.87;}
+.bbtn.cancel{background:#1a0808;border-color:#5c1a1a;color:var(--red);}
+.bbtn.sel-all{background:var(--s3);border-color:var(--border2);}
+
+/* Checkbox on lead cards */
+.lcheck{
+  width:20px;height:20px;border-radius:5px;border:2px solid var(--border);
+  background:var(--s2);cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;margin-top:2px;
+}
+.lcheck.checked{background:var(--wa);border-color:var(--wa);}
+.lcheck.checked::after{content:'✓';color:#fff;font-size:.75rem;font-weight:800;}
+.blast-mode .lcard{cursor:default;}
+.blast-mode .lcard.selected{border-color:var(--wa);background:linear-gradient(135deg,#061a0e22,transparent);}
+
+/* ── BLAST MODAL ── */
+.blast-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;
+  display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;
+}
+.blast-modal.hide{display:none;}
+.blast-panel{
+  background:var(--s1);border:1px solid var(--wa);border-radius:14px;
+  padding:24px 20px;width:100%;max-width:500px;margin:auto;
+}
+.blast-panel h3{font-size:1rem;font-weight:800;margin-bottom:16px;
+  display:flex;align-items:center;gap:8px;color:var(--wa);}
+
+/* Queue list */
+.queue-list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;margin-bottom:14px;}
+.queue-item{
+  background:var(--s2);border:1.5px solid var(--border);border-radius:9px;
+  padding:11px 13px;display:flex;align-items:center;gap:10px;
+}
+.queue-item.sent{opacity:.45;border-color:var(--green);}
+.queue-item.active{border-color:var(--wa);background:var(--wa-bg,#061a0e);}
+.qi-info{flex:1;min-width:0;}
+.qi-name{font-weight:700;font-size:.88rem;}
+.qi-num{font-size:.76rem;color:var(--text2);}
+.qi-msg{font-size:.75rem;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.qi-send{
+  background:var(--wa);border:none;border-radius:7px;color:#fff;
+  font-family:var(--sans);font-size:.78rem;font-weight:700;
+  padding:7px 12px;cursor:pointer;white-space:nowrap;transition:opacity .15s;flex-shrink:0;
+}
+.qi-send:hover{opacity:.87;}
+.qi-send:disabled{background:var(--s3);color:var(--text3);cursor:default;opacity:1;}
+
+/* Countdown */
+.countdown-wrap{
+  background:var(--s2);border:1px solid var(--border);border-radius:10px;
+  padding:14px;text-align:center;margin-bottom:14px;
+}
+.countdown-num{font-size:2.5rem;font-weight:800;color:var(--wa);line-height:1;}
+.countdown-lbl{font-size:.78rem;color:var(--text2);margin-top:4px;}
+.countdown-bar{
+  height:5px;background:var(--border);border-radius:3px;margin-top:10px;overflow:hidden;
+}
+.countdown-fill{height:100%;background:var(--wa);border-radius:3px;transition:width 1s linear;}
+
+/* Progress */
+.blast-progress{
+  background:var(--s2);border-radius:8px;padding:10px 14px;
+  display:flex;align-items:center;gap:10px;margin-bottom:14px;
+}
+.bp-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.bp-fill{height:100%;background:var(--wa);border-radius:3px;transition:width .3s;}
+.bp-lbl{font-size:.78rem;color:var(--text2);white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -440,6 +531,17 @@ body.p2{--proj:#e5363a;}body.p3{--proj:#9d5cf6;}
     </div>
   </div>
 
+  <!-- BLAST BAR -->
+  <div class="blast-bar hide" id="blast-bar">
+    <span class="blast-count" id="blast-count">0 selected</span>
+    <div class="blast-actions">
+      <button class="bbtn sel-all" onclick="selectAllVisible()">☑️ Select All Visible</button>
+      <button class="bbtn" onclick="selectByStatus()">🔖 Select by Status</button>
+      <button class="bbtn wa" onclick="openBlastModal()">💬 WhatsApp Blast</button>
+      <button class="bbtn cancel" onclick="exitBlastMode()">✕ Cancel</button>
+    </div>
+  </div>
+
   <div id="boss-header" style="display:none;">
     <div class="boss-hd">
       <span class="boss-crown">👑</span>
@@ -463,6 +565,8 @@ body.p2{--proj:#e5363a;}body.p3{--proj:#9d5cf6;}
         <input id="search" placeholder="Search name, contact, remarks…" oninput="render()"/>
       </div>
       <button class="add-btn" id="add-btn" onclick="openAddModal()">➕ Add Lead</button>
+      <button class="add-btn" id="blast-btn" onclick="toggleBlastMode()"
+        style="background:var(--wa-d,#128C7E);">💬 Blast</button>
     </div>
     <div class="sscroll"><div class="srow" id="srow"></div></div>
     <div class="sort-row">
@@ -499,6 +603,79 @@ body.p2{--proj:#e5363a;}body.p3{--proj:#9d5cf6;}
     <div class="modal-row">
       <button class="abtn cta" onclick="submitAddLead()">Save to Sheet</button>
       <button class="abtn" onclick="document.getElementById('add-modal').classList.add('hide')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- BLAST MODAL -->
+<div class="blast-modal hide" id="blast-modal">
+  <div class="blast-panel">
+    <h3>💬 WhatsApp Blast
+      <span style="font-size:.75rem;font-weight:500;color:var(--text2);margin-left:auto;" id="blast-modal-count"></span>
+    </h3>
+
+    <!-- Message composer -->
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:6px;">
+        Message (use {{name}} for client name)
+      </label>
+      <textarea id="blast-msg" placeholder="Hi {{name}}, I'm following up on your property enquiry. Are you still interested? 😊"
+        style="width:100%;background:var(--bg);border:1.5px solid var(--wa);border-radius:8px;
+        color:var(--text);font-family:var(--sans);font-size:.87rem;padding:10px 12px;
+        resize:vertical;min-height:80px;outline:none;line-height:1.6;"></textarea>
+    </div>
+
+    <!-- Mode selector -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button class="bbtn" id="mode-auto" onclick="setBlastMode('auto')"
+        style="flex:1;justify-content:center;border-color:var(--wa);color:var(--wa);">⚡ Auto (with timer)</button>
+      <button class="bbtn" id="mode-queue" onclick="setBlastMode('queue')"
+        style="flex:1;justify-content:center;">📋 Queue (manual)</button>
+    </div>
+
+    <!-- Auto mode settings -->
+    <div id="auto-settings" style="background:var(--s2);border-radius:9px;padding:12px;margin-bottom:14px;">
+      <label style="font-size:.72rem;font-weight:700;color:var(--text3);display:block;margin-bottom:8px;">⏱ Delay between messages</label>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;">
+        <button class="bbtn" id="delay-60"  onclick="setDelay(60)"  style="font-size:.8rem;">1 min</button>
+        <button class="bbtn" id="delay-120" onclick="setDelay(120)" style="border-color:var(--wa);color:var(--wa);font-size:.8rem;">2 min ✓</button>
+        <button class="bbtn" id="delay-180" onclick="setDelay(180)" style="font-size:.8rem;">3 min</button>
+        <button class="bbtn" id="delay-300" onclick="setDelay(300)" style="font-size:.8rem;">5 min</button>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <input id="delay-custom" type="number" min="1" max="60" placeholder="?"
+            style="width:52px;background:var(--bg);border:1.5px solid var(--border);border-radius:6px;
+            color:var(--text);font-family:var(--sans);font-size:.82rem;padding:5px 8px;outline:none;text-align:center;"
+            oninput="setDelay(parseInt(this.value)*60||120)"/>
+          <span style="font-size:.75rem;color:var(--text3);">min</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Countdown (shown during auto blast) -->
+    <div class="countdown-wrap hide" id="countdown-wrap">
+      <div class="countdown-num" id="countdown-num">120</div>
+      <div class="countdown-lbl" id="countdown-lbl">Next message in...</div>
+      <div class="countdown-bar"><div class="countdown-fill" id="countdown-fill" style="width:100%;"></div></div>
+    </div>
+
+    <!-- Progress -->
+    <div class="blast-progress hide" id="blast-progress">
+      <div class="bp-bar"><div class="bp-fill" id="bp-fill" style="width:0%;"></div></div>
+      <span class="bp-lbl" id="bp-lbl">0 / 0 sent</span>
+    </div>
+
+    <!-- Queue list -->
+    <div class="queue-list" id="queue-list"></div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="bbtn wa" id="blast-start-btn" onclick="startBlast()" style="flex:1;justify-content:center;padding:11px;">
+        💬 Start Blast
+      </button>
+      <button class="bbtn" id="blast-pause-btn" onclick="pauseBlast()" style="display:none;flex:1;justify-content:center;padding:11px;">
+        ⏸ Pause
+      </button>
+      <button class="bbtn cancel" onclick="closeBlastModal()" style="padding:11px;">✕ Close</button>
     </div>
   </div>
 </div>
@@ -1070,7 +1247,8 @@ function render(flashIds=[]){
       ${isBoss?`<div class="agent-ribbon">
         <div class="agent-av" style="background:${aColor}">${(lead.agentName||'?')[0].toUpperCase()}</div>
         ${esc(lead.agentName||'—')}</div>`:''}
-      <div class="lhead" onclick="toggle('${esc(lead.id)}')">
+      <div class="lhead" onclick="blastMode ? toggleSelect('${esc(lead.id)}') : toggle('${esc(lead.id)}')">
+        ${blastMode ? `<div class="lcheck${selectedIds.has(lead.id)?' checked':''}" id="chk-${esc(lead.id)}"></div>` : ''}
         <div class="linfo">
           <div class="lname">${esc(lead.name||'(No name)')}</div>
           <div class="lcontact">📞 ${esc(lead.contact||'—')}</div>
@@ -1342,6 +1520,283 @@ function toast(msg,type='ok'){
 }
 function nowTime(){ return new Date().toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'}); }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// ═══════════════════════════════════════════════════════════════
+//  WHATSAPP BLAST
+// ═══════════════════════════════════════════════════════════════
+let blastMode    = false;
+let selectedIds  = new Set();
+let blastQueue   = [];
+let blastDelay   = 120;       // seconds between messages
+let blastRunning = false;
+let blastPaused  = false;
+let blastIdx     = 0;
+let countdownTimer = null;
+let countdownSec   = 0;
+let blastModeType  = 'auto';  // 'auto' | 'queue'
+
+function toggleBlastMode() {
+  blastMode = !blastMode;
+  selectedIds.clear();
+  document.getElementById('blast-bar').classList.toggle('hide', !blastMode);
+  document.body.classList.toggle('blast-mode', blastMode);
+  document.getElementById('blast-btn').style.background = blastMode ? 'var(--red)' : 'var(--wa-d,#128C7E)';
+  document.getElementById('blast-btn').textContent = blastMode ? '✕ Exit Blast' : '💬 Blast';
+  render();
+}
+
+function exitBlastMode() {
+  blastMode = false; selectedIds.clear();
+  document.getElementById('blast-bar').classList.add('hide');
+  document.body.classList.remove('blast-mode');
+  document.getElementById('blast-btn').style.background = 'var(--wa-d,#128C7E)';
+  document.getElementById('blast-btn').textContent = '💬 Blast';
+  render();
+}
+
+function toggleSelect(id) {
+  if (!blastMode) return;
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  updateBlastCount();
+  // Update card visual
+  const card = document.getElementById('c-' + id);
+  if (card) card.classList.toggle('selected', selectedIds.has(id));
+  const chk = document.getElementById('chk-' + id);
+  if (chk) chk.classList.toggle('checked', selectedIds.has(id));
+}
+
+function selectAllVisible() {
+  const leads = getVisible();
+  const q     = document.getElementById('search').value.toLowerCase();
+  let visible = leads;
+  if (activeStatus !== 'All') visible = visible.filter(l => l.status === activeStatus);
+  if (q) visible = visible.filter(l => [l.name,l.contact,l.remarks].some(v=>(v||'').toLowerCase().includes(q)));
+  visible.forEach(l => selectedIds.add(l.id));
+  updateBlastCount();
+  render();
+}
+
+function selectByStatus() {
+  // Show quick status picker
+  const statuses = STATUSES;
+  const picked   = prompt('Enter status to select all (e.g. FOLLOW UP):\n\n' + statuses.join('\n'));
+  if (!picked) return;
+  const upper  = picked.trim().toUpperCase();
+  const leads  = getVisible().filter(l => l.status === upper);
+  if (!leads.length) { toast('No leads with status: ' + upper, 'warn'); return; }
+  leads.forEach(l => selectedIds.add(l.id));
+  updateBlastCount();
+  render();
+  toast(leads.length + ' leads selected (' + upper + ')', 'ok');
+}
+
+function updateBlastCount() {
+  const n = selectedIds.size;
+  document.getElementById('blast-count').textContent = n + ' selected';
+  document.getElementById('blast-bar').classList.toggle('hide', false);
+}
+
+// ── BLAST MODAL ──────────────────────────────────────────────
+function openBlastModal() {
+  if (selectedIds.size === 0) { toast('Please select at least one lead first', 'err'); return; }
+  buildBlastQueue();
+  document.getElementById('blast-modal-count').textContent = selectedIds.size + ' recipients';
+  document.getElementById('blast-modal').classList.remove('hide');
+  document.getElementById('countdown-wrap').classList.add('hide');
+  document.getElementById('blast-progress').classList.add('hide');
+  document.getElementById('blast-start-btn').style.display = 'flex';
+  document.getElementById('blast-pause-btn').style.display = 'none';
+  blastRunning = false; blastPaused = false; blastIdx = 0;
+  setBlastMode('auto');
+  setDelay(120);
+  renderQueue();
+}
+
+function closeBlastModal() {
+  stopCountdown();
+  blastRunning = false; blastPaused = false;
+  document.getElementById('blast-modal').classList.add('hide');
+}
+
+function setBlastMode(mode) {
+  blastModeType = mode;
+  document.getElementById('mode-auto').style.borderColor  = mode==='auto' ? 'var(--wa)' : '';
+  document.getElementById('mode-auto').style.color        = mode==='auto' ? 'var(--wa)' : '';
+  document.getElementById('mode-queue').style.borderColor = mode==='queue'? 'var(--wa)' : '';
+  document.getElementById('mode-queue').style.color       = mode==='queue'? 'var(--wa)' : '';
+  document.getElementById('auto-settings').style.display  = mode==='auto' ? 'block' : 'none';
+}
+
+function setDelay(secs) {
+  blastDelay = secs || 120;
+  ['60','120','180','300'].forEach(s => {
+    const btn = document.getElementById('delay-' + s);
+    if (btn) { btn.style.borderColor = s == secs ? 'var(--wa)' : ''; btn.style.color = s == secs ? 'var(--wa)' : ''; }
+  });
+}
+
+function buildBlastQueue() {
+  const allLeads = getVisible();
+  blastQueue = [];
+  selectedIds.forEach(id => {
+    const lead = allLeads.find(l => l.id === id);
+    if (lead && lead.contact && lead.contact !== '—') blastQueue.push(lead);
+  });
+}
+
+function renderQueue() {
+  const msg   = document.getElementById('blast-msg').value || 'Hi {{name}}, following up on your property enquiry 😊';
+  const el    = document.getElementById('queue-list');
+  el.innerHTML = blastQueue.map((lead, i) => {
+    const sent   = i < blastIdx;
+    const active = i === blastIdx && blastRunning;
+    const filled = msg.replace(/\{\{name\}\}/g, lead.name || '');
+    return `<div class="queue-item${sent?' sent':''}${active?' active':''}" id="qi-${lead.id}">
+      <div class="qi-info">
+        <div class="qi-name">${esc(lead.name||'No name')} ${sent?'✅':''}</div>
+        <div class="qi-num">📞 ${esc(lead.contact)}</div>
+        <div class="qi-msg">${esc(filled.slice(0,60))}…</div>
+      </div>
+      ${blastModeType==='queue' ? `
+        <button class="qi-send" ${sent?'disabled':''} onclick="sendOne(${i})">
+          ${sent?'Sent':'Send'}
+        </button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── QUEUE MODE ───────────────────────────────────────────────
+function sendOne(idx) {
+  const lead = blastQueue[idx];
+  if (!lead) return;
+  const msg  = buildMsg(lead);
+  openWA(lead.contact, msg);
+  blastIdx = idx + 1;
+  // Log to sheet
+  logBlastToSheet(lead);
+  renderQueue();
+  updateProgress();
+  if (blastIdx >= blastQueue.length) toast('All messages sent! 🎉', 'ok');
+}
+
+// ── AUTO MODE ────────────────────────────────────────────────
+function startBlast() {
+  if (!blastQueue.length) { toast('No leads in queue', 'err'); return; }
+  const msg = document.getElementById('blast-msg').value.trim();
+  if (!msg) { toast('Please type a message first', 'err'); return; }
+
+  blastRunning = true; blastPaused = false;
+  document.getElementById('blast-start-btn').style.display = 'none';
+  document.getElementById('blast-progress').classList.remove('hide');
+
+  if (blastModeType === 'auto') {
+    document.getElementById('blast-pause-btn').style.display = 'flex';
+    document.getElementById('countdown-wrap').classList.remove('hide');
+    sendNextAuto();
+  } else {
+    renderQueue();
+  }
+}
+
+function sendNextAuto() {
+  if (blastPaused || !blastRunning) return;
+  if (blastIdx >= blastQueue.length) {
+    stopCountdown();
+    toast('🎉 Blast complete! ' + blastQueue.length + ' messages sent', 'ok');
+    document.getElementById('countdown-wrap').classList.add('hide');
+    document.getElementById('blast-pause-btn').style.display = 'none';
+    blastRunning = false;
+    return;
+  }
+
+  const lead = blastQueue[blastIdx];
+  const msg  = buildMsg(lead);
+  openWA(lead.contact, msg);
+  logBlastToSheet(lead);
+  updateProgress();
+  renderQueue();
+  blastIdx++;
+
+  if (blastIdx < blastQueue.length) {
+    startCountdown(blastDelay, sendNextAuto);
+  } else {
+    stopCountdown();
+    document.getElementById('countdown-wrap').classList.add('hide');
+    document.getElementById('blast-pause-btn').style.display = 'none';
+    blastRunning = false;
+    toast('🎉 Blast complete! All ' + blastQueue.length + ' messages sent', 'ok');
+  }
+}
+
+function pauseBlast() {
+  blastPaused = !blastPaused;
+  document.getElementById('blast-pause-btn').textContent = blastPaused ? '▶ Resume' : '⏸ Pause';
+  if (!blastPaused) sendNextAuto();
+  else stopCountdown();
+}
+
+// ── COUNTDOWN TIMER ──────────────────────────────────────────
+function startCountdown(secs, onDone) {
+  stopCountdown();
+  countdownSec = secs;
+  const total  = secs;
+  updateCountdownUI(secs, total);
+  countdownTimer = setInterval(() => {
+    if (blastPaused) return;
+    countdownSec--;
+    updateCountdownUI(countdownSec, total);
+    if (countdownSec <= 0) {
+      stopCountdown();
+      onDone();
+    }
+  }, 1000);
+}
+
+function stopCountdown() {
+  clearInterval(countdownTimer);
+  countdownTimer = null;
+}
+
+function updateCountdownUI(secs, total) {
+  const m = Math.floor(secs/60), s = secs%60;
+  document.getElementById('countdown-num').textContent  = m + ':' + String(s).padStart(2,'0');
+  document.getElementById('countdown-lbl').textContent  = 'Next message in… (' + (blastIdx+1) + '/' + blastQueue.length + ')';
+  document.getElementById('countdown-fill').style.width = (secs/total*100) + '%';
+}
+
+function updateProgress() {
+  const pct = Math.round(blastIdx / blastQueue.length * 100);
+  document.getElementById('bp-fill').style.width = pct + '%';
+  document.getElementById('bp-lbl').textContent  = blastIdx + ' / ' + blastQueue.length + ' sent';
+}
+
+// ── HELPERS ──────────────────────────────────────────────────
+function buildMsg(lead) {
+  const tmpl = document.getElementById('blast-msg').value ||
+    'Hi {{name}}, following up on your property enquiry 😊';
+  return tmpl.replace(/\{\{name\}\}/g, lead.name || '').replace(/\{\{agent\}\}/g, currentUser.name);
+}
+
+function openWA(contact, msg) {
+  const clean = String(contact).replace(/[\s\-]/g,'');
+  const num   = clean.startsWith('0') ? '6'+clean : clean;
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg));
+}
+
+function logBlastToSheet(lead) {
+  // Log WhatsApp timestamp to sheet silently
+  const proj = PROJECTS[activeProjIdx] || PROJECTS[0];
+  if (!proj) return;
+  const url  = currentUser.role === 'boss'
+    ? (agentList.find(a=>a.name===lead.agentName)||{}).scriptUrl
+    : currentUser.scriptUrl;
+  if (!url) return;
+  fetch(url + '?action=logWhatsApp&rowIndex=' + lead.rowIndex +
+    '&sheet=' + encodeURIComponent(lead.project||proj.name) +
+    '&agent=' + encodeURIComponent(currentUser.name) + '&t=' + Date.now())
+  .catch(e => console.warn('logBlast:', e));
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  INIT — restore session or show login
