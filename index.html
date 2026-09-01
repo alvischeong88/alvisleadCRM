@@ -762,36 +762,46 @@ async function doLogin() {
   }
 
   showStatus('Signing in…', 'loading');
+  console.log('Attempting login for:', username, 'via', masterUrl);
 
-  const url = masterUrl
-    + '?action=login'
+  const MASTER = 'https://script.google.com/macros/s/AKfycbx_M2NWIvjzODQY4StH_v5gasVwc36VvW4oynoxAeJYf3NTArXgqISFnptkumKvIEyj/exec';
+  const url = MASTER + '?action=login'
     + '&username=' + encodeURIComponent(username)
     + '&password=' + encodeURIComponent(password)
     + '&t=' + Date.now();
 
   let data = null;
+  let lastError = '';
 
-  try {
-    const res  = await fetch(url, { redirect: 'follow' });
-    const text = await res.text();
-    // Find JSON in the response
-    try { data = JSON.parse(text); } catch(e) {}
-    if (!data) {
-      const match = text.match(/\{[\s\S]*"authenticated"[\s\S]*\}/);
-      if (match) try { data = JSON.parse(match[0]); } catch(e) {}
+  // Try multiple fetch attempts
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      console.log('Attempt', attempt, url);
+      const res  = await Promise.race([
+        fetch(url, { redirect: 'follow' }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+      ]);
+      const text = await res.text();
+      console.log('Response:', text.slice(0, 200));
+      // Parse JSON — handle Google's redirect wrapper
+      try { data = JSON.parse(text); break; }
+      catch(e) {
+        const match = text.match(/\{[\s\S]*"authenticated"[\s\S]*\}/);
+        if (match) { data = JSON.parse(match[0]); break; }
+      }
+    } catch(e) {
+      lastError = e.message;
+      console.warn('Attempt', attempt, 'failed:', e.message);
+      if (attempt < 3) await new Promise(r => setTimeout(r, 1000));
     }
-    console.log('Login response:', text.slice(0, 200));
-  } catch(e) {
-    console.warn('Fetch failed:', e.message);
   }
 
   if (!data) {
-    showStatus('Cannot reach CRM server. Please check your internet connection and try again.', 'error');
+    showStatus('Cannot reach CRM server (' + lastError + '). Check internet and try again.', 'error');
     return;
   }
-
   if (!data.authenticated) {
-    showStatus(data.error || 'Login failed. Please check your username and password.', 'error');
+    showStatus(data.error || 'Login failed. Check username and password.', 'error');
     return;
   }
 
@@ -802,13 +812,9 @@ async function doLogin() {
     scriptUrl: data.scriptUrl || '',
     color:     data.color || '#3b7fff',
   };
-
-  localStorage.setItem('crm_session', JSON.stringify({
-    ...currentUser, masterUrl, ts: Date.now()
-  }));
-
-  showStatus('Welcome, ' + currentUser.name + '! Loading your leads…', 'success');
-  setTimeout(startApp, 500);
+  localStorage.setItem('crm_session', JSON.stringify({ ...currentUser, masterUrl: MASTER, ts: Date.now() }));
+  showStatus('Welcome, ' + currentUser.name + '! Loading…', 'success');
+  setTimeout(startApp, 400);
 }
 
 function showStatus(msg, type) {
