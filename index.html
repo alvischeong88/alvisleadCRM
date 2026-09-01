@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Property CRM</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap');
@@ -768,28 +771,18 @@ async function doLogin() {
 
   let data = null;
 
-  // Try method 1: normal fetch
   try {
-    const res = await fetch(url, { redirect: 'follow' });
+    const res  = await fetch(url, { redirect: 'follow' });
     const text = await res.text();
-    // Find JSON in response (Google sometimes wraps it)
-    const match = text.match(/\{[\s\S]*\}/);
-    if (match) data = JSON.parse(match[0]);
-  } catch(e1) {
-    console.warn('Fetch method 1 failed:', e1.message);
-  }
-
-  // Try method 2: no-cors mode fallback (last resort)
-  if (!data) {
-    try {
-      const res = await fetch(url, { mode: 'no-cors', redirect: 'follow' });
-      // no-cors returns opaque response — try reading anyway
-      const text = await res.text().catch(() => '');
-      const match = text.match(/\{[\s\S]*\}/);
-      if (match) data = JSON.parse(match[0]);
-    } catch(e2) {
-      console.warn('Fetch method 2 failed:', e2.message);
+    // Find JSON in the response
+    try { data = JSON.parse(text); } catch(e) {}
+    if (!data) {
+      const match = text.match(/\{[\s\S]*"authenticated"[\s\S]*\}/);
+      if (match) try { data = JSON.parse(match[0]); } catch(e) {}
     }
+    console.log('Login response:', text.slice(0, 200));
+  } catch(e) {
+    console.warn('Fetch failed:', e.message);
   }
 
   if (!data) {
@@ -802,7 +795,6 @@ async function doLogin() {
     return;
   }
 
-  // ✅ Login successful
   currentUser = {
     name:      data.name || username,
     username,
@@ -1803,7 +1795,14 @@ function logBlastToSheet(lead) {
 // ═══════════════════════════════════════════════════════════════
 window.onload = () => {
   masterUrl = localStorage.getItem('crm_master_url') || 'https://script.google.com/macros/s/AKfycbx_M2NWIvjzODQY4StH_v5gasVwc36VvW4oynoxAeJYf3NTArXgqISFnptkumKvIEyj/exec';
-  
+
+  // Clear any corrupted old sessions from previous app versions
+  const APP_VERSION = 'v3';
+  if (localStorage.getItem('crm_app_version') !== APP_VERSION) {
+    localStorage.removeItem('crm_session');
+    localStorage.setItem('crm_app_version', APP_VERSION);
+    console.log('Old session cleared — please sign in again');
+  }
 
   const session = JSON.parse(localStorage.getItem('crm_session') || 'null');
   if (session && masterUrl && (Date.now() - session.ts) < 30*24*3600*1000) {
