@@ -1074,6 +1074,7 @@ function render(flashIds=[]){
         <div class="linfo">
           <div class="lname">${esc(lead.name||'(No name)')}</div>
           <div class="lcontact">📞 ${esc(lead.contact||'—')}</div>
+          ${lead.date?`<div style="font-size:.7rem;color:var(--text3);margin-top:2px;">📅 ${esc(lead.date)}</div>`:''}
         </div>
         <div class="lright">
           <span class="sbadge s-${esc(lead.status.replace(/ /g,'-'))}">${esc(lead.status)}</span>
