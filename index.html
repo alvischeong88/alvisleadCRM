@@ -719,7 +719,7 @@ let masterUrl       = 'https://script.google.com/macros/s/AKfycbxTUEB7lJjTPdJdQ_
 // ── CACHE CONFIG ─────────────────────────────────────────────
 const CACHE_KEY     = u => 'crm_cache_' + u;
 const CACHE_MAX_AGE = 5 * 60 * 1000;  // 5 minutes
-const POLL_MS       = 5 * 60 * 1000;  // poll every 5 minutes (was 30s)
+const POLL_MS       = 10 * 60 * 1000; // poll every 10 minutes for boss
 
 function saveCache(username, data) {
   try { localStorage.setItem(CACHE_KEY(username), JSON.stringify({ data, ts: Date.now() })); } catch(e){}
@@ -929,59 +929,66 @@ function manualRefresh() {
 }
 
 async function fetchAllAgents() {
-  setSyncUI('syncing', 'Syncing…');
 
-  // Step 1 — Load from cache first (instant display)
+  // Step 1 — Show cache instantly if available
   const cached = loadCache('boss_' + currentUser.username);
   if (cached) {
     agentLeads = cached.agentLeads || {};
-    agentList  = cached.agentList  || agentList;
+    if (cached.agentList && cached.agentList.length) agentList = cached.agentList;
     buildBossAgentFilter();
     fullRender();
     setSyncUI('ok', 'Cached · ' + cached.time);
+  } else {
+    // No cache — show all known agents immediately with 0 leads
+    buildBossAgentFilter();
+    fullRender();
+    setSyncUI('syncing', 'Loading…');
   }
 
-  // Step 2 — Fetch fresh agent list from master
+  // Step 2 — Fetch agent list from master (5s timeout)
   try {
-    const res  = await fetchWithTimeout(masterUrl + '?action=getAllAgents&username=' + encodeURIComponent(currentUser.username) + '&t=' + Date.now(), 8000);
+    const res  = await fetchWithTimeout(masterUrl + '?action=getAllAgents&username=' + encodeURIComponent(currentUser.username) + '&t=' + Date.now(), 5000);
     const data = await res.json();
     if (data.agents) {
       const fromMaster = data.agents.filter(a => a.role !== 'boss');
-      // Merge: master data takes priority, fallback adds any missing agents
       const masterNames = new Set(fromMaster.map(a => a.name.toLowerCase()));
       const extra = FALLBACK_AGENTS.filter(a => !masterNames.has(a.name.toLowerCase()));
       agentList = [...fromMaster, ...extra];
     }
-    if (agentList.length === 0) agentList = FALLBACK_AGENTS;
   } catch(e) {
-    console.error('fetchAllAgents master:', e);
-    if (agentList.length === 0) agentList = FALLBACK_AGENTS;
+    console.warn('Master fetch failed, using fallback:', e.message);
   }
+  if (agentList.length === 0) agentList = FALLBACK_AGENTS;
 
-  const activeAgents = agentList.filter(a => a.scriptUrl && a.scriptUrl.includes('script.google.com'));
+  // Step 3 — Filter only agents with valid script URLs
+  const activeAgents = agentList.filter(a =>
+    a.scriptUrl && a.scriptUrl.includes('script.google.com')
+  );
 
-  // Build filter with ALL agents from master sheet
   buildBossAgentFilter();
-  fullRender(); // Show all agents immediately even before leads load
 
   if (activeAgents.length === 0) {
-    setSyncUI('ok', 'No agent sheets set up yet — add Script URLs to Master Sheet');
+    setSyncUI('ok', 'No agent sheets linked yet');
+    fullRender();
     return;
   }
 
-  // Load projects from first agent
-  if (activeAgents[0]) await loadProjects(activeAgents[0]);
+  // Step 4 — Load projects from first active agent (3s timeout)
+  try {
+    await Promise.race([
+      loadProjects(activeAgents[0]),
+      new Promise(r => setTimeout(r, 3000))
+    ]);
+  } catch(e) { console.warn('loadProjects failed:', e.message); }
 
-  // Step 3 — Fetch ALL agents IN PARALLEL (much faster than sequential)
-  setSyncUI('syncing', 'Fetching ' + activeAgents.length + ' agents…');
-  await Promise.allSettled(activeAgents.map(agent => fetchAgentLeadsParallel(agent)));
+  // Step 5 — Fetch ALL agents in PARALLEL with strict 8s timeout each
+  setSyncUI('syncing', 'Syncing ' + activeAgents.length + ' agent' + (activeAgents.length > 1 ? 's' : '') + '…');
+  await Promise.allSettled(
+    activeAgents.map(agent => fetchAgentLeadsParallel(agent))
+  );
 
-  // Step 4 — Save to cache
-  saveCache('boss_' + currentUser.username, {
-    agentLeads, agentList,
-    time: nowTime()
-  });
-
+  // Step 6 — Save cache + render
+  saveCache('boss_' + currentUser.username, { agentLeads, agentList, time: nowTime() });
   buildBossAgentFilter();
   fullRender();
   setSyncUI('ok', 'Synced ' + nowTime());
