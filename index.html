@@ -734,17 +734,8 @@ function loadCache(username) {
   } catch(e){ return null; }
 }
 let currentUser     = null;   // {name,username,role,scriptUrl,color}
-// Fallback agent list — only used if master sheet returns empty
-const FALLBACK_AGENTS = [
-  { name:'Bella',   username:'bella',   role:'agent', scriptUrl:'https://script.google.com/macros/s/AKfycbwkugP1o4yfvoEKgRzNBannS2TacB-8zUaZ8mtQrdvQOCWHIxMk_k7I3olvdykZLy0F/exec', color:'#9d5cf6', active:true },
-  { name:'Ahmad Faiz',  username:'ahmad',   role:'agent', scriptUrl:'', color:'#3b7fff', active:true },
-  { name:'Siti Rohani', username:'siti',    role:'agent', scriptUrl:'', color:'#1db954', active:true },
-  { name:'Farid Aiman', username:'farid',   role:'agent', scriptUrl:'', color:'#9d5cf6', active:true },
-  { name:'MICHEAL',     username:'micheal', role:'agent', scriptUrl:'', color:'#0db8a0', active:true },
-  { name:'EVON',        username:'evon',    role:'agent', scriptUrl:'', color:'#f0a500', active:true },
-  { name:'yunice',      username:'yunice',  role:'agent', scriptUrl:'', color:'#e5363a', active:true },
-  { name:'STEPH',       username:'steph',   role:'agent', scriptUrl:'', color:'#f56042', active:true },
-];
+// Fallback agent list — empty, always use master sheet as source of truth
+const FALLBACK_AGENTS = [];
 let agentList       = [];
 let agentLeads      = {};     // {agentName:{projName:[leads]}}
 let prevSnap        = {};
