@@ -949,8 +949,12 @@ async function fetchAllAgents() {
   }
 
   const activeAgents = agentList.filter(a => a.scriptUrl && a.scriptUrl.includes('script.google.com'));
+
+  // Always build agent filter with ALL agents (even those without script URL)
+  buildBossAgentFilter();
+
   if (activeAgents.length === 0) {
-    setSyncUI('ok', 'No agents set up yet');
+    setSyncUI('ok', 'No agent sheets set up yet');
     fullRender();
     return;
   }
@@ -1249,7 +1253,7 @@ function render(flashIds=[]){
         ${blastMode ? `<div class="lcheck${selectedIds.has(lead.id)?' checked':''}" id="chk-${esc(lead.id)}"></div>` : ''}
         <div class="linfo">
           <div class="lname">${esc(lead.name||'(No name)')}</div>
-          <div class="lcontact">📞 ${esc(lead.contact||'—')}</div>
+          <div class="lcontact">📞 ${esc(formatContact(lead.contact||'—'))}</div>
           ${lead.date?`<div style="font-size:.7rem;color:var(--text3);margin-top:2px;">📅 ${esc(lead.date)}</div>`:''}
         </div>
         <div class="lright">
@@ -1510,6 +1514,20 @@ function staleness(lead){
 // ═══════════════════════════════════════════════════════════════
 //  UTILS
 // ═══════════════════════════════════════════════════════════════
+// Fix scientific notation phone numbers (e.g. 6.01135E+11 → 60113500000)
+function formatContact(contact) {
+  if (!contact || contact === '—') return contact;
+  const s = String(contact).trim();
+  // Detect scientific notation
+  if (/^\d+\.?\d*[eE]\+\d+$/.test(s)) {
+    try {
+      const num = Math.round(parseFloat(s));
+      return String(num);
+    } catch(e) {}
+  }
+  return s;
+}
+
 function setSyncUI(s,l){ document.getElementById('spill').className='sync-pill '+s; document.getElementById('slbl').textContent=l; }
 let _tt;
 function toast(msg,type='ok'){
