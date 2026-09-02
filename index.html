@@ -734,11 +734,16 @@ function loadCache(username) {
   } catch(e){ return null; }
 }
 let currentUser     = null;   // {name,username,role,scriptUrl,color}
-// Fallback agent list — used if master sheet columns not yet updated
+// Fallback agent list — only used if master sheet returns empty
 const FALLBACK_AGENTS = [
-  { name:'Bella', username:'bella', role:'agent',
-    scriptUrl:'https://script.google.com/macros/s/AKfycbwkugP1o4yfvoEKgRzNBannS2TacB-8zUaZ8mtQrdvQOCWHIxMk_k7I3olvdykZLy0F/exec',
-    color:'#9d5cf6', active:true },
+  { name:'Bella',   username:'bella',   role:'agent', scriptUrl:'https://script.google.com/macros/s/AKfycbwkugP1o4yfvoEKgRzNBannS2TacB-8zUaZ8mtQrdvQOCWHIxMk_k7I3olvdykZLy0F/exec', color:'#9d5cf6', active:true },
+  { name:'Ahmad Faiz',  username:'ahmad',   role:'agent', scriptUrl:'', color:'#3b7fff', active:true },
+  { name:'Siti Rohani', username:'siti',    role:'agent', scriptUrl:'', color:'#1db954', active:true },
+  { name:'Farid Aiman', username:'farid',   role:'agent', scriptUrl:'', color:'#9d5cf6', active:true },
+  { name:'MICHEAL',     username:'micheal', role:'agent', scriptUrl:'', color:'#0db8a0', active:true },
+  { name:'EVON',        username:'evon',    role:'agent', scriptUrl:'', color:'#f0a500', active:true },
+  { name:'yunice',      username:'yunice',  role:'agent', scriptUrl:'', color:'#e5363a', active:true },
+  { name:'STEPH',       username:'steph',   role:'agent', scriptUrl:'', color:'#f56042', active:true },
 ];
 let agentList       = [];
 let agentLeads      = {};     // {agentName:{projName:[leads]}}
@@ -940,8 +945,13 @@ async function fetchAllAgents() {
   try {
     const res  = await fetchWithTimeout(masterUrl + '?action=getAllAgents&username=' + encodeURIComponent(currentUser.username) + '&t=' + Date.now(), 8000);
     const data = await res.json();
-    if (data.agents) agentList = data.agents.filter(a => a.role !== 'boss');
-    // Use fallback if master returns empty
+    if (data.agents) {
+      const fromMaster = data.agents.filter(a => a.role !== 'boss');
+      // Merge: master data takes priority, fallback adds any missing agents
+      const masterNames = new Set(fromMaster.map(a => a.name.toLowerCase()));
+      const extra = FALLBACK_AGENTS.filter(a => !masterNames.has(a.name.toLowerCase()));
+      agentList = [...fromMaster, ...extra];
+    }
     if (agentList.length === 0) agentList = FALLBACK_AGENTS;
   } catch(e) {
     console.error('fetchAllAgents master:', e);
@@ -950,12 +960,12 @@ async function fetchAllAgents() {
 
   const activeAgents = agentList.filter(a => a.scriptUrl && a.scriptUrl.includes('script.google.com'));
 
-  // Always build agent filter with ALL agents (even those without script URL)
+  // Build filter with ALL agents from master sheet
   buildBossAgentFilter();
+  fullRender(); // Show all agents immediately even before leads load
 
   if (activeAgents.length === 0) {
-    setSyncUI('ok', 'No agent sheets set up yet');
-    fullRender();
+    setSyncUI('ok', 'No agent sheets set up yet — add Script URLs to Master Sheet');
     return;
   }
 
