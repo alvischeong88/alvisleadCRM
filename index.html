@@ -1120,11 +1120,14 @@ function setStatus(el,s){
 
 function buildBossAgentFilter(){
   const pills = document.getElementById('agent-pills');
+  if (!pills) return;
+  // Sanitize color — must be valid hex
+  const safeColor = c => /^#[0-9A-Fa-f]{3,6}$/.test(c) ? c : '#3b7fff';
   pills.innerHTML=
     `<div class="afil${activeAgentFil==='All'?' active':''}" onclick="setAgentFil('All')">All</div>`+
     agentList.map(a=>
       `<div class="afil${activeAgentFil===a.name?' active':''}"
-        style="${activeAgentFil===a.name?'background:'+a.color+';border-color:'+a.color+';color:#fff':''}"
+        style="${activeAgentFil===a.name?'background:'+safeColor(a.color)+';border-color:'+safeColor(a.color)+';color:#fff':''}"
         onclick="setAgentFil('${esc(a.name)}')">${esc(a.name)}</div>`
     ).join('');
 }
