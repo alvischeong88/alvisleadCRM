@@ -938,7 +938,7 @@ async function fetchAllAgents() {
 
   // Step 2 — Fetch agent list from master (5s timeout)
   try {
-    const res  = await fetchWithTimeout(masterUrl + '?action=getAllAgents&username=' + encodeURIComponent(currentUser.username) + '&t=' + Date.now(), 5000);
+    const res  = await fetchWithTimeout(masterUrl + '?action=getallagents&username=' + encodeURIComponent(currentUser.username) + '&t=' + Date.now(), 5000);
     const data = await res.json();
     if (data.agents) {
       const fromMaster = data.agents.filter(a => a.role !== 'boss');
