@@ -714,7 +714,7 @@ const STAB_STYLE={
 };
 
 // ── STATE ────────────────────────────────────────────────────
-let masterUrl       = 'https://script.google.com/macros/s/AKfycbxTUEB7lJjTPdJdQ_Hm1C08BGqDqQkH6DZPf11x4pSu7mB7ztxnIgBWXpSv_p0C5rij/exec';
+let masterUrl       = 'https://script.google.com/macros/s/AKfycby6qZj-DspeFyVuGx-CxOT1QzOYcEfc6C5vtOjJZWqr2YS_vqMZHYAtkC2rCXMVn2ps/exec';
 
 // ── CACHE CONFIG ─────────────────────────────────────────────
 const CACHE_KEY     = u => 'crm_cache_' + u;
@@ -760,7 +760,7 @@ async function doLogin() {
   showStatus('Signing in…', 'loading');
   console.log('Attempting login for:', username, 'via', masterUrl);
 
-  const MASTER = 'https://script.google.com/macros/s/AKfycbxTUEB7lJjTPdJdQ_Hm1C08BGqDqQkH6DZPf11x4pSu7mB7ztxnIgBWXpSv_p0C5rij/exec';
+  const MASTER = 'https://script.google.com/macros/s/AKfycby6qZj-DspeFyVuGx-CxOT1QzOYcEfc6C5vtOjJZWqr2YS_vqMZHYAtkC2rCXMVn2ps/exec';
   const url = MASTER + '?action=login'
     + '&username=' + encodeURIComponent(username)
     + '&password=' + encodeURIComponent(password)
@@ -1829,7 +1829,7 @@ function logBlastToSheet(lead) {
 //  INIT — restore session or show login
 // ═══════════════════════════════════════════════════════════════
 window.onload = () => {
-  masterUrl = localStorage.getItem('crm_master_url') || 'https://script.google.com/macros/s/AKfycbxTUEB7lJjTPdJdQ_Hm1C08BGqDqQkH6DZPf11x4pSu7mB7ztxnIgBWXpSv_p0C5rij/exec';
+  masterUrl = localStorage.getItem('crm_master_url') || 'https://script.google.com/macros/s/AKfycby6qZj-DspeFyVuGx-CxOT1QzOYcEfc6C5vtOjJZWqr2YS_vqMZHYAtkC2rCXMVn2ps/exec';
 
   // Clear any corrupted old sessions from previous app versions
   const APP_VERSION = 'v3';
