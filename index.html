@@ -434,7 +434,7 @@ async function startApp(){
 async function loadLeads(){
   let query = sb.from('leads').select('*').order('date_added', { ascending:false });
   if(currentAgent.role !== 'boss'){
-    query = query.eq('agent', currentAgent.name);
+    query = query.ilike('agent', currentAgent.name);
   }
   const { data, error } = await query;
   if(error){ console.error(error); allLeads = []; return; }
