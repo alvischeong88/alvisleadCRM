@@ -283,15 +283,15 @@
     <p class="brand">CSG Property</p>
     <p class="brand-sub">Lead Desk — sign in to continue</p>
     <div class="field">
-      <label for="login-name">Name</label>
-      <input id="login-name" type="text" autocomplete="username" placeholder="e.g. Steph">
+      <label for="login-name">Username</label>
+      <input id="login-name" type="text" autocomplete="username" placeholder="e.g. steph">
     </div>
     <div class="field">
-      <label for="login-pin">PIN</label>
+      <label for="login-pin">Password</label>
       <input id="login-pin" type="password" autocomplete="current-password" placeholder="••••••">
     </div>
     <button class="btn-primary" onclick="handleLogin()">Sign in</button>
-    <p id="login-error">Name or PIN is incorrect.</p>
+    <p id="login-error">Username or password is incorrect.</p>
   </div>
 </div>
 
@@ -375,18 +375,18 @@ let editingLeadId = null;
 
 /* ============ LOGIN ============ */
 async function handleLogin(){
-  const name = document.getElementById('login-name').value.trim();
-  const pin = document.getElementById('login-pin').value.trim();
+  const username = document.getElementById('login-name').value.trim();
+  const password = document.getElementById('login-pin').value.trim();
   const errEl = document.getElementById('login-error');
   errEl.style.display = 'none';
 
-  if(!name || !pin) return;
+  if(!username || !password) return;
 
   const { data, error } = await sb
     .from('agents')
-    .select('name, role, active')
-    .ilike('name', name)
-    .eq('pin', pin)
+    .select('name, username, role, active')
+    .ilike('username', username)
+    .eq('password', password)
     .maybeSingle();
 
   if(error || !data || data.active === false){
@@ -394,6 +394,7 @@ async function handleLogin(){
     return;
   }
 
+  // "name" is the display name used to tag/filter leads (e.g. matches leads.agent), "username" is only for login
   currentAgent = { name: data.name, role: data.role };
   localStorage.setItem('csg_agent', JSON.stringify(currentAgent));
   startApp();
