@@ -302,6 +302,7 @@
     <div class="who">
       <span id="who-name"></span>
       <span class="badge" id="who-role"></span>
+      <button class="logout-link" id="manage-agents-btn" style="display:none;" onclick="openAgentsModal()">Manage agents</button>
       <button class="logout-link" onclick="handleLogout()">Sign out</button>
     </div>
   </header>
@@ -358,6 +359,29 @@
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
       <button class="btn-primary modal-save" onclick="saveModal()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MANAGE AGENTS MODAL (boss only) ============ -->
+<div class="modal-overlay" id="agents-modal">
+  <div class="modal">
+    <h2>Manage agents</h2>
+    <div id="agents-list" style="margin-bottom:20px;"></div>
+    <h3 style="font-size:15px;margin:0 0 12px;">Add new agent</h3>
+    <div class="field"><label>Display name (used to tag their leads)</label><input id="a-name" type="text" placeholder="e.g. Bella"></div>
+    <div class="field"><label>Username (for login)</label><input id="a-username" type="text" placeholder="e.g. bella"></div>
+    <div class="field"><label>Password</label><input id="a-password" type="text" placeholder="Set a password"></div>
+    <div class="field">
+      <label>Role</label>
+      <select id="a-role" style="width:100%;">
+        <option value="agent">Agent</option>
+        <option value="boss">Boss</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeAgentsModal()">Close</button>
+      <button class="btn-primary modal-save" onclick="addAgent()">Add agent</button>
     </div>
   </div>
 </div>
@@ -422,6 +446,7 @@ async function startApp(){
   document.getElementById('app').style.display = 'flex';
   document.getElementById('who-name').textContent = currentAgent.name;
   document.getElementById('who-role').textContent = currentAgent.role === 'boss' ? 'Boss' : 'Agent';
+  document.getElementById('manage-agents-btn').style.display = currentAgent.role === 'boss' ? 'inline' : 'none';
 
   await loadLeads();
   buildGrid();
@@ -592,6 +617,57 @@ async function saveModal(){
 
 function addLead(){
   openModal(null);
+}
+
+/* ============ MANAGE AGENTS (boss only) ============ */
+async function openAgentsModal(){
+  await loadAgentsList();
+  document.getElementById('agents-modal').classList.add('active');
+}
+
+function closeAgentsModal(){
+  document.getElementById('agents-modal').classList.remove('active');
+}
+
+async function loadAgentsList(){
+  const { data, error } = await sb.from('agents').select('id, name, username, role, active').order('name');
+  const list = document.getElementById('agents-list');
+  if(error){ list.innerHTML = '<p style="color:var(--rust);">Could not load agents.</p>'; return; }
+  list.innerHTML = data.map(a => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">
+      <span><strong>${escapeHtml(a.name)}</strong> · ${escapeHtml(a.username)} · ${a.role}${a.active ? '' : ' · inactive'}</span>
+      <button class="btn-secondary" style="flex:none;padding:5px 10px;font-size:12px;" onclick="toggleAgentActive('${a.id}', ${!a.active})">
+        ${a.active ? 'Deactivate' : 'Reactivate'}
+      </button>
+    </div>
+  `).join('') || '<p style="color:var(--slate);">No agents yet.</p>';
+}
+
+async function toggleAgentActive(id, newActive){
+  await sb.from('agents').update({ active: newActive }).eq('id', id);
+  await loadAgentsList();
+}
+
+async function addAgent(){
+  const name = document.getElementById('a-name').value.trim();
+  const username = document.getElementById('a-username').value.trim();
+  const password = document.getElementById('a-password').value.trim();
+  const role = document.getElementById('a-role').value;
+
+  if(!name || !username || !password){
+    alert('Please fill in display name, username, and password.');
+    return;
+  }
+
+  const { error } = await sb.from('agents').insert({ name, username, password, role, active: true });
+  if(error){
+    alert('Could not add agent: ' + error.message);
+    return;
+  }
+  document.getElementById('a-name').value = '';
+  document.getElementById('a-username').value = '';
+  document.getElementById('a-password').value = '';
+  await loadAgentsList();
 }
 </script>
 </body>
