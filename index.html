@@ -1,66 +1,740 @@
-# Enquiry Ledger — Setup Guide
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Enquiry Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2A41;
+    --ink-soft:#4B5A70;
+    --paper:#F7F5F0;
+    --surface:#FFFFFF;
+    --line:#DDD9CE;
+    --brass:#B8862F;
+    --brass-dark:#96691E;
+    --status-new:#5B7FA6;
+    --status-contact:#9C7B3E;
+    --status-viewing:#6E8B5E;
+    --status-negotiate:#B8862F;
+    --status-booked:#3E7A56;
+    --status-lost:#A4544A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'IBM Plex Sans', sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.serif{
+    font-family:'Newsreader', serif;
+    font-weight:500;
+    letter-spacing:-0.01em;
+  }
+  .app{
+    max-width:720px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--surface);
+    border-left:1px solid var(--line);
+    border-right:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+  }
+  header.top{
+    padding:22px 20px 18px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+  }
+  header.top h1{
+    font-size:1.5rem;
+    margin:0;
+    color:var(--ink);
+  }
+  header.top .tag{
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+  .who{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:0.85rem;
+    color:var(--ink-soft);
+  }
+  .who button{
+    background:none;
+    border:none;
+    color:var(--brass-dark);
+    cursor:pointer;
+    font-size:0.85rem;
+    padding:0;
+    text-decoration:underline;
+    text-underline-offset:2px;
+  }
 
-## 1. Create the Google Sheet
+  /* ---------- Login ---------- */
+  .login-wrap{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px 24px;
+  }
+  .login-card{
+    width:100%;
+    max-width:360px;
+  }
+  .login-card h2{
+    font-size:1.6rem;
+    margin:0 0 6px;
+  }
+  .login-card p.lede{
+    color:var(--ink-soft);
+    font-size:0.92rem;
+    margin:0 0 26px;
+  }
+  label{
+    display:block;
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    margin:0 0 6px;
+  }
+  select, input[type=text], input[type=tel], input[type=password], textarea{
+    width:100%;
+    padding:11px 12px;
+    font-size:0.95rem;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background:var(--surface);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+  }
+  select:focus, input:focus, textarea:focus{
+    outline:2px solid var(--brass);
+    outline-offset:1px;
+    border-color:var(--brass);
+  }
+  .field{margin-bottom:16px;}
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:11px 18px;
+    border-radius:3px;
+    border:1px solid transparent;
+    font-size:0.9rem;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight:500;
+    cursor:pointer;
+  }
+  .btn-primary{
+    background:var(--ink);
+    color:#fff;
+    width:100%;
+  }
+  .btn-primary:hover{background:#25395a;}
+  .btn-ghost{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink);
+  }
+  .btn-ghost:hover{border-color:var(--ink);}
+  .error{
+    color:var(--status-lost);
+    font-size:0.85rem;
+    margin-top:12px;
+  }
 
-Create a new Google Sheet with two tabs:
+  /* ---------- Toolbar ---------- */
+  .toolbar{
+    padding:16px 20px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .toolbar input[type=text]{flex:1; min-width:140px;}
+  .toolbar select{width:auto;}
+  .count-pill{
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    white-space:nowrap;
+  }
 
-### Tab: `Enquiries`
-Header row (exact names, row 1):
-```
-ID | DATE | NAME | CONTACT | STATUS | REMARKS | CUSTOMER PROFILE | LAST STATUS CHANGE | LAST REMARK | LAST CALL | LAST WHATSAPP | AGENT
-```
-Leave the rest of the rows empty — the app will populate them.
+  /* ---------- List ---------- */
+  .list{
+    flex:1;
+    padding:6px 0 90px;
+  }
+  .empty{
+    padding:60px 24px;
+    text-align:center;
+    color:var(--ink-soft);
+  }
+  .empty .serif{font-size:1.3rem; display:block; margin-bottom:6px; color:var(--ink);}
 
-### Tab: `Agents`
-Header row (exact names, row 1):
-```
-NAME | PIN | ROLE
-```
-Add one row per team member, e.g.:
-```
-Alvis     | 1234 | boss
-Agent Tan | 2222 | agent
-Agent Lee | 3333 | agent
-```
-`ROLE` must be exactly `boss` or `agent` (lowercase). The boss role sees every agent's enquiries; the agent role sees only their own.
+  .row{
+    padding:16px 20px;
+    border-bottom:1px solid var(--line);
+    border-left:4px solid var(--status-new);
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    cursor:pointer;
+  }
+  .row:hover{background:#FBFAF7;}
+  .row-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+  }
+  .row-name{
+    font-family:'Newsreader', serif;
+    font-size:1.15rem;
+  }
+  .row-agent{
+    font-size:0.72rem;
+    color:var(--ink-soft);
+  }
+  .status-chip{
+    font-size:0.72rem;
+    padding:3px 9px;
+    border-radius:12px;
+    color:#fff;
+    white-space:nowrap;
+  }
+  .row-meta{
+    font-size:0.8rem;
+    color:var(--ink-soft);
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px 14px;
+  }
+  .row-remark{
+    font-size:0.85rem;
+    color:var(--ink);
+    opacity:0.85;
+  }
+  .row-actions{
+    display:flex;
+    gap:8px;
+    margin-top:4px;
+  }
+  .icon-btn{
+    border:1px solid var(--line);
+    background:var(--surface);
+    border-radius:3px;
+    padding:7px 12px;
+    font-size:0.8rem;
+    cursor:pointer;
+    color:var(--ink);
+  }
+  .icon-btn:hover{border-color:var(--brass); color:var(--brass-dark);}
 
-## 2. Deploy the backend (Apps Script)
+  /* ---------- FAB ---------- */
+  .fab{
+    position:fixed;
+    bottom:24px;
+    right:calc(50% - 360px + 24px);
+    background:var(--brass);
+    color:#fff;
+    border:none;
+    border-radius:50%;
+    width:56px;
+    height:56px;
+    font-size:1.6rem;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(150,105,30,0.35);
+  }
+  @media (max-width:760px){
+    .fab{right:24px;}
+  }
+  .fab:hover{background:var(--brass-dark);}
 
-1. In the Sheet, go to **Extensions → Apps Script**.
-2. Delete any placeholder code and paste in the contents of `Code.gs`.
-3. Click **Deploy → New deployment**.
-4. Choose type: **Web app**.
-5. Set:
-   - Execute as: **Me**
-   - Who has access: **Anyone**
-6. Click **Deploy**, authorize the permissions when prompted.
-7. Copy the **Web app URL** it gives you — it looks like:
-   `https://script.google.com/macros/s/XXXXXXX/exec`
+  /* ---------- Modal ---------- */
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(27,42,65,0.45);
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:20;
+  }
+  @media (min-width:600px){
+    .overlay{align-items:center;}
+  }
+  .modal{
+    background:var(--surface);
+    width:100%;
+    max-width:480px;
+    max-height:92vh;
+    overflow-y:auto;
+    border-radius:8px 8px 0 0;
+    padding:24px 22px 28px;
+  }
+  @media (min-width:600px){
+    .modal{border-radius:8px;}
+  }
+  .modal h2{font-size:1.3rem; margin:0 0 4px;}
+  .modal .sub{font-size:0.8rem; color:var(--ink-soft); margin-bottom:20px;}
+  .modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:8px;
+  }
+  .close-x{
+    float:right;
+    background:none;
+    border:none;
+    font-size:1.3rem;
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
 
-## 3. Connect the frontend
+  /* ---------- Boss dashboard ---------- */
+  .dash-summary{
+    padding:18px 20px 6px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(120px,1fr));
+    gap:10px;
+  }
+  .stat-card{
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:12px 14px;
+  }
+  .stat-card .num{
+    font-family:'Newsreader', serif;
+    font-size:1.6rem;
+    display:block;
+  }
+  .stat-card .lbl{
+    font-size:0.72rem;
+    color:var(--ink-soft);
+  }
 
-1. Open `index.html`.
-2. Find this line near the top of the `<script>` block:
-   ```js
-   const API_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
-   ```
-3. Replace it with the Web app URL from step 2.7.
+  .hidden{display:none !important;}
+  .loading{
+    text-align:center;
+    padding:40px;
+    color:var(--ink-soft);
+    font-size:0.9rem;
+  }
+</style>
+</head>
+<body>
 
-## 4. Deploy to GitHub Pages
+<div class="app">
 
-1. Create a new GitHub repo (or reuse an existing one), e.g. `enquiry-ledger`.
-2. Upload `index.html` to the repo root.
-3. Go to repo **Settings → Pages**, set source to the `main` branch, root folder.
-4. Your app will be live at `https://<your-username>.github.io/enquiry-ledger/`.
+  <!-- LOGIN -->
+  <div id="loginScreen" class="login-wrap">
+    <div class="login-card">
+      <h2 class="serif">Enquiry Ledger</h2>
+      <p class="lede">Sign in to view and update your client enquiries.</p>
+      <div class="field">
+        <label for="loginName">Your name</label>
+        <select id="loginName"><option value="">Loading agents…</option></select>
+      </div>
+      <div class="field">
+        <label for="loginPin">PIN</label>
+        <input type="password" id="loginPin" inputmode="numeric" placeholder="••••" />
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">Sign in</button>
+      <div id="loginError" class="error hidden"></div>
+    </div>
+  </div>
 
-## 5. Test it
+  <!-- MAIN APP -->
+  <div id="mainScreen" class="hidden">
+    <header class="top">
+      <div>
+        <h1>Enquiry Ledger</h1>
+        <div class="tag" id="viewTag">My enquiries</div>
+      </div>
+      <div class="who">
+        <span id="whoName"></span>
+        <button onclick="logout()">Sign out</button>
+      </div>
+    </header>
 
-- Open the URL, pick an agent name, enter the PIN.
-- Add a test enquiry, log a call, log a WhatsApp — check the Sheet updates live.
-- Log in as the boss account to confirm the all-agents dashboard and filter work.
+    <!-- Boss summary -->
+    <div id="bossDash" class="hidden">
+      <div class="dash-summary" id="statCards"></div>
+    </div>
 
-## Notes
+    <div class="toolbar">
+      <input type="text" id="searchBox" placeholder="Search name or contact…" oninput="renderList()" />
+      <select id="statusFilter" onchange="renderList()">
+        <option value="">All statuses</option>
+        <option>New</option>
+        <option>Contacted</option>
+        <option>Viewing Scheduled</option>
+        <option>Negotiating</option>
+        <option>Booked</option>
+        <option>Lost</option>
+      </select>
+      <select id="agentFilter" class="hidden" onchange="renderList()">
+        <option value="">All agents</option>
+      </select>
+      <span class="count-pill" id="countPill"></span>
+    </div>
 
-- Agents and the boss can also edit the Sheet directly — the app always re-fetches fresh data, so both stay in sync. Just note the app expects `LAST STATUS CHANGE` / `LAST REMARK` in `dd/MM/yyyy HH:mm` format if you manually edit those cells.
-- If you ever need to add a new status option, update it in **two places**: the `<select>` list in `index.html` (both the filter and the edit form) and (optionally) the `STATUS_COLORS` map for its chip color.
-- If the app shows "Could not load agent list," double-check the Apps Script deployment access is set to **Anyone** (not "Anyone with Google account").
+    <div class="list" id="list">
+      <div class="loading">Loading enquiries…</div>
+    </div>
+  </div>
+
+  <button class="fab hidden" id="fabAdd" onclick="openAddModal()" title="Add enquiry">+</button>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="overlay hidden" id="editOverlay">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal()">×</button>
+    <h2 class="serif" id="modalTitle">New enquiry</h2>
+    <div class="sub" id="modalSub"></div>
+
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="fName" />
+    </div>
+    <div class="field">
+      <label>Contact number</label>
+      <input type="tel" id="fContact" placeholder="e.g. 6012xxxxxxx" />
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="fStatus">
+        <option>New</option>
+        <option>Contacted</option>
+        <option>Viewing Scheduled</option>
+        <option>Negotiating</option>
+        <option>Booked</option>
+        <option>Lost</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Customer profile</label>
+      <textarea id="fProfile" rows="2" placeholder="Budget, unit type, preferences…"></textarea>
+    </div>
+    <div class="field">
+      <label>Remarks</label>
+      <textarea id="fRemarks" rows="3" placeholder="Notes from your latest interaction…"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   CONFIG — paste your Apps Script Web App URL here
+   ========================================================= */
+const API_URL = 'https://script.google.com/macros/s/AKfycbxlwIWPpsAyafjejwKLSVU5ZgUq6QCrKOdDbGXWep24heXqifEjrWm18pWLbB3vW7BQBg/exec';
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let session = null;        // { name, role }
+let enquiries = [];        // cached list
+let editingId = null;      // id of enquiry being edited, or null for "new"
+
+const STATUS_COLORS = {
+  'New': 'var(--status-new)',
+  'Contacted': 'var(--status-contact)',
+  'Viewing Scheduled': 'var(--status-viewing)',
+  'Negotiating': 'var(--status-negotiate)',
+  'Booked': 'var(--status-booked)',
+  'Lost': 'var(--status-lost)',
+};
+
+/* =========================================================
+   API HELPER — plain GET requests only (CORS-safe against
+   Apps Script web apps deployed with "Anyone" access)
+   ========================================================= */
+async function api(action, params = {}) {
+  const url = new URL(API_URL);
+  url.searchParams.set('action', action);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const res = await fetch(url.toString());
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+window.addEventListener('DOMContentLoaded', async () => {
+  const saved = sessionStorage.getItem('enquiryLedgerSession');
+  if (saved) {
+    session = JSON.parse(saved);
+    showMain();
+  } else {
+    loadAgentList();
+  }
+});
+
+async function loadAgentList() {
+  try {
+    const data = await api('agents');
+    const sel = document.getElementById('loginName');
+    sel.innerHTML = '<option value="">Select your name…</option>' +
+      data.agents.map(a => `<option value="${a}">${a}</option>`).join('');
+  } catch (err) {
+    document.getElementById('loginName').innerHTML = '<option value="">Could not load agent list</option>';
+  }
+}
+
+/* =========================================================
+   LOGIN / LOGOUT
+   ========================================================= */
+async function doLogin() {
+  const name = document.getElementById('loginName').value;
+  const pin = document.getElementById('loginPin').value;
+  const errBox = document.getElementById('loginError');
+  errBox.classList.add('hidden');
+  if (!name || !pin) {
+    errBox.textContent = 'Please select your name and enter your PIN.';
+    errBox.classList.remove('hidden');
+    return;
+  }
+  try {
+    const res = await api('login', { name, pin });
+    session = { name: res.name, role: res.role };
+    sessionStorage.setItem('enquiryLedgerSession', JSON.stringify(session));
+    showMain();
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.classList.remove('hidden');
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('enquiryLedgerSession');
+  session = null;
+  document.getElementById('mainScreen').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+}
+
+/* =========================================================
+   MAIN VIEW
+   ========================================================= */
+function showMain() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('mainScreen').classList.remove('hidden');
+  document.getElementById('fabAdd').classList.remove('hidden');
+  document.getElementById('whoName').textContent = `${session.name} · ${session.role === 'boss' ? 'Boss view' : 'Agent'}`;
+  document.getElementById('viewTag').textContent = session.role === 'boss' ? 'All agents' : 'My enquiries';
+
+  if (session.role === 'boss') {
+    document.getElementById('bossDash').classList.remove('hidden');
+    document.getElementById('agentFilter').classList.remove('hidden');
+  }
+  fetchEnquiries();
+}
+
+async function fetchEnquiries() {
+  document.getElementById('list').innerHTML = '<div class="loading">Loading enquiries…</div>';
+  try {
+    const data = await api('list', { agent: session.name, role: session.role });
+    enquiries = data.rows;
+    if (session.role === 'boss') {
+      populateAgentFilter();
+      renderStats();
+    }
+    renderList();
+  } catch (err) {
+    document.getElementById('list').innerHTML = `<div class="empty">Could not load enquiries.<br>${err.message}</div>`;
+  }
+}
+
+function populateAgentFilter() {
+  const sel = document.getElementById('agentFilter');
+  const current = sel.value;
+  const names = [...new Set(enquiries.map(r => r.AGENT).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All agents</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
+  sel.value = current;
+}
+
+function renderStats() {
+  const total = enquiries.length;
+  const byStatus = {};
+  enquiries.forEach(r => { byStatus[r.STATUS] = (byStatus[r.STATUS] || 0) + 1; });
+  const cards = [
+    { num: total, lbl: 'Total enquiries' },
+    ...Object.entries(byStatus).map(([status, n]) => ({ num: n, lbl: status })),
+  ];
+  document.getElementById('statCards').innerHTML = cards.map(c =>
+    `<div class="stat-card"><span class="num serif">${c.num}</span><span class="lbl">${c.lbl}</span></div>`
+  ).join('');
+}
+
+function renderList() {
+  const q = document.getElementById('searchBox').value.trim().toLowerCase();
+  const statusF = document.getElementById('statusFilter').value;
+  const agentF = document.getElementById('agentFilter').value;
+
+  let rows = enquiries.filter(r => {
+    if (statusF && r.STATUS !== statusF) return false;
+    if (agentF && r.AGENT !== agentF) return false;
+    if (q) {
+      const hay = `${r.NAME} ${r.CONTACT}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // sort by most recent activity
+  rows.sort((a, b) => latestActivity(b) - latestActivity(a));
+
+  document.getElementById('countPill').textContent = `${rows.length} shown`;
+
+  const list = document.getElementById('list');
+  if (rows.length === 0) {
+    list.innerHTML = `<div class="empty"><span class="serif">No enquiries yet</span>Tap the + button to log a new client enquiry.</div>`;
+    return;
+  }
+
+  list.innerHTML = rows.map(r => rowTemplate(r)).join('');
+}
+
+function parseTs(s) {
+  if (!s) return 0;
+  // expects dd/MM/yyyy HH:mm
+  const [datePart, timePart] = String(s).split(' ');
+  if (!datePart) return 0;
+  const [d, m, y] = datePart.split('/').map(Number);
+  const [hh, mm] = (timePart || '0:0').split(':').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0).getTime();
+}
+
+function latestActivity(r) {
+  return Math.max(parseTs(r['LAST STATUS CHANGE']), parseTs(r['LAST REMARK']), parseTs(r['LAST CALL']), parseTs(r['LAST WHATSAPP']), parseTs(r['DATE']));
+}
+
+function rowTemplate(r) {
+  const color = STATUS_COLORS[r.STATUS] || 'var(--status-new)';
+  const lastBits = [
+    r['LAST STATUS CHANGE'] ? `Status: ${r['LAST STATUS CHANGE']}` : null,
+    r['LAST CALL'] ? `Called: ${r['LAST CALL']}` : null,
+    r['LAST WHATSAPP'] ? `WhatsApp: ${r['LAST WHATSAPP']}` : null,
+  ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+
+  return `
+    <div class="row" style="border-left-color:${color}" onclick="openEditModal('${r.ID}')">
+      <div class="row-top">
+        <div>
+          <div class="row-name">${escapeHtml(r.NAME || 'Unnamed')}</div>
+          ${session.role === 'boss' ? `<div class="row-agent">${escapeHtml(r.AGENT || '')}</div>` : ''}
+        </div>
+        <span class="status-chip" style="background:${color}">${escapeHtml(r.STATUS || 'New')}</span>
+      </div>
+      <div class="row-meta">
+        <span>${escapeHtml(r.CONTACT || '')}</span>
+        ${lastBits ? `<span>${lastBits}</span>` : ''}
+      </div>
+      ${r.REMARKS ? `<div class="row-remark">${escapeHtml(r.REMARKS)}</div>` : ''}
+      <div class="row-actions" onclick="event.stopPropagation()">
+        <button class="icon-btn" onclick="logCall('${r.ID}')">📞 Log call</button>
+        <button class="icon-btn" onclick="logWhatsapp('${r.ID}', '${escapeAttr(r.CONTACT)}')">💬 Log WhatsApp</button>
+      </div>
+    </div>
+  `;
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s){ return String(s ?? '').replace(/'/g, ''); }
+
+/* =========================================================
+   QUICK ACTIONS
+   ========================================================= */
+async function logCall(id) {
+  await api('logcall', { id });
+  await fetchEnquiries();
+}
+
+async function logWhatsapp(id, contact) {
+  await api('logwhatsapp', { id });
+  await fetchEnquiries();
+  if (contact) {
+    const digits = contact.replace(/[^0-9]/g, '');
+    window.open(`https://wa.me/${digits}`, '_blank');
+  }
+}
+
+/* =========================================================
+   ADD / EDIT MODAL
+   ========================================================= */
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'New enquiry';
+  document.getElementById('modalSub').textContent = 'Logged under your name automatically.';
+  document.getElementById('fName').value = '';
+  document.getElementById('fContact').value = '';
+  document.getElementById('fStatus').value = 'New';
+  document.getElementById('fProfile').value = '';
+  document.getElementById('fRemarks').value = '';
+  document.getElementById('editOverlay').classList.remove('hidden');
+}
+
+function openEditModal(id) {
+  const r = enquiries.find(x => x.ID === id);
+  if (!r) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Update enquiry';
+  document.getElementById('modalSub').textContent = session.role === 'boss' ? `Agent: ${r.AGENT}` : '';
+  document.getElementById('fName').value = r.NAME || '';
+  document.getElementById('fContact').value = r.CONTACT || '';
+  document.getElementById('fStatus').value = r.STATUS || 'New';
+  document.getElementById('fProfile').value = r['CUSTOMER PROFILE'] || '';
+  document.getElementById('fRemarks').value = r.REMARKS || '';
+  document.getElementById('editOverlay').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('editOverlay').classList.add('hidden');
+}
+
+async function saveModal() {
+  const name = document.getElementById('fName').value.trim();
+  const contact = document.getElementById('fContact').value.trim();
+  const status = document.getElementById('fStatus').value;
+  const profile = document.getElementById('fProfile').value.trim();
+  const remarks = document.getElementById('fRemarks').value.trim();
+
+  if (!name) { alert('Please enter a name.'); return; }
+
+  try {
+    if (editingId) {
+      await api('update', { id: editingId, name, contact, status, profile, remarks });
+    } else {
+      await api('add', { name, contact, status, profile, remarks, agent: session.name });
+    }
+    closeModal();
+    await fetchEnquiries();
+  } catch (err) {
+    alert('Could not save: ' + err.message);
+  }
+}
+</script>
+</body>
+</html>
