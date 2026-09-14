@@ -91,7 +91,7 @@
   <div class="login-card">
     <p class="brand">CSG Property</p>
     <p class="brand-sub">Lead Desk — sign in to continue</p>
-    <div class="field"><label for="login-user">Username</label><input id="login-user" type="text" placeholder="e.g. steph"></div>
+    <div class="field"><label for="login-user">Username</label><input id="login-user" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="e.g. steph"></div>
     <div class="field"><label for="login-pass">Password</label><input id="login-pass" type="password" placeholder="••••••"></div>
     <button class="btn-primary" onclick="handleLogin()">Sign in</button>
     <p id="login-error">Username or password is incorrect.</p>
@@ -219,11 +219,18 @@ let syncLabelTimer = null;
 
 /* ============ API HELPER ============ */
 async function api(action, params = {}) {
-  const url = new URL(WEB_APP_URL);
-  url.searchParams.set('action', action);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString());
-  return res.json();
+  try {
+    const url = new URL(WEB_APP_URL);
+    url.searchParams.set('action', action);
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    const res = await fetch(url.toString());
+    if(!res.ok){
+      return { success: false, error: `Server returned ${res.status} ${res.statusText}` };
+    }
+    return await res.json();
+  } catch(err){
+    return { success: false, error: 'Connection failed: ' + err.message };
+  }
 }
 
 function leadKey(lead){ return `${lead.sheetId}||${lead.tab}||${lead.row}`; }
