@@ -5,71 +5,83 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CSG Property — Lead Desk</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/tabulator-tables@5.6.1/dist/css/tabulator.min.css" rel="stylesheet">
 <script src="https://unpkg.com/tabulator-tables@5.6.1/dist/js/tabulator.min.js"></script>
 <style>
   :root{
-    --ink:#1B2430; --paper:#F6F3ED; --paper-raised:#FFFFFF;
-    --brass:#B98A3D; --brass-dark:#8F6A2C; --sage:#4C7A63; --rust:#B24C3B;
-    --slate:#667085; --line:#E4DFD5; --radius:6px;
+    --violet:#6D28D9; --violet-dark:#5B21B6; --pink:#EC4899; --orange:#F97316;
+    --blue:#3B82F6; --amber:#F59E0B; --emerald:#10B981; --red:#EF4444; --gray:#6B7280;
+    --bg:#F7F5FF; --surface:#FFFFFF; --border:#E9E3FB; --text:#211A33; --text-muted:#6B6480;
+    --radius:10px;
   }
   *{box-sizing:border-box;}
-  body{margin:0;font-family:'IBM Plex Sans',sans-serif;background:var(--paper);color:var(--ink);}
+  body{margin:0;font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);}
   h1,h2,h3,.brand{font-family:'Fraunces',serif;}
-  #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
-  .login-card{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);padding:40px 36px;width:100%;max-width:360px;position:relative;}
-  .login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--brass);border-radius:var(--radius) var(--radius) 0 0;}
-  .brand{font-size:22px;font-weight:600;margin:0 0 4px;}
-  .brand-sub{color:var(--slate);font-size:13px;margin:0 0 28px;}
+  #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:linear-gradient(135deg,#6D28D9 0%,#EC4899 55%,#F97316 100%);}
+  .login-card{background:var(--surface);border-radius:16px;padding:40px 36px;width:100%;max-width:360px;
+    box-shadow:0 20px 50px rgba(93,33,182,0.35);}
+  .brand{font-size:24px;font-weight:700;margin:0 0 4px;
+    background:linear-gradient(90deg,var(--violet),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .brand-sub{color:var(--text-muted);font-size:13px;margin:0 0 28px;}
   .field{margin-bottom:16px;}
-  .field label{display:block;font-size:12px;font-weight:500;color:var(--slate);margin-bottom:6px;}
-  .field input, .field textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius);font-family:inherit;font-size:14px;background:var(--paper);}
-  .field input:focus, .field textarea:focus{outline:none;border-color:var(--brass);}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;}
+  .field input, .field textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;background:#FCFBFF;}
+  .field input:focus, .field textarea:focus{outline:none;border-color:var(--violet);}
   button{font-family:inherit;cursor:pointer;}
-  .btn-primary{width:100%;padding:11px;background:var(--ink);color:var(--paper);border:none;border-radius:var(--radius);font-size:14px;font-weight:500;}
-  .btn-primary:hover{background:var(--brass-dark);}
-  #login-error{color:var(--rust);font-size:13px;margin-top:12px;display:none;}
+  .btn-primary{width:100%;padding:12px;background:linear-gradient(90deg,var(--violet),var(--pink));color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  #login-error{color:var(--red);font-size:13px;margin-top:12px;display:none;font-weight:500;}
   #app{display:none;min-height:100vh;flex-direction:column;}
-  header{background:var(--ink);color:var(--paper);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
-  header .brand{color:var(--paper);font-size:18px;margin:0;}
+  header{background:linear-gradient(90deg,var(--violet),var(--pink));color:white;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+  header .brand{color:white;font-size:19px;margin:0;-webkit-text-fill-color:white;}
   .who{display:flex;align-items:center;gap:10px;font-size:13px;}
-  .badge{padding:3px 9px;border-radius:99px;font-size:11px;font-weight:500;background:var(--brass);color:var(--ink);}
-  .logout-link{color:var(--paper);opacity:0.7;background:none;border:none;font-size:13px;text-decoration:underline;}
+  .badge{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;background:rgba(255,255,255,0.25);color:white;}
+  .logout-link{color:white;opacity:0.85;background:none;border:none;font-size:13px;text-decoration:underline;}
   .logout-link:hover{opacity:1;}
-  .toolbar{display:flex;align-items:center;gap:14px;padding:14px 24px;background:var(--paper-raised);border-bottom:1px solid var(--line);flex-wrap:wrap;}
-  .tabs{display:flex;gap:4px;background:var(--paper);padding:4px;border-radius:var(--radius);}
-  .tab-btn{padding:8px 16px;border:none;background:transparent;border-radius:4px;font-size:13px;font-weight:500;color:var(--slate);}
-  .tab-btn.active{background:var(--ink);color:var(--paper);}
-  select, .add-btn, .sync-btn{padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius);font-family:inherit;font-size:13px;background:var(--paper-raised);}
-  .add-btn{background:var(--sage);color:white;border:none;font-weight:500;}
-  .sync-btn{background:var(--paper-raised);color:var(--ink);}
+  .toolbar{display:flex;align-items:center;gap:12px;padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .tabs{display:flex;gap:4px;background:var(--bg);padding:4px;border-radius:8px;}
+  .tab-btn{padding:8px 16px;border:none;background:transparent;border-radius:6px;font-size:13px;font-weight:600;color:var(--text-muted);}
+  .tab-btn.active{background:var(--violet);color:white;}
+  select, .btn-tool{padding:9px 13px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--surface);font-weight:500;}
+  .btn-blast{background:linear-gradient(90deg,#10B981,#3B82F6);color:white;border:none;font-weight:700;}
+  .btn-add{background:linear-gradient(90deg,var(--orange),var(--pink));color:white;border:none;font-weight:700;}
+  .btn-sync{color:var(--violet);border-color:var(--violet);}
   .spacer{flex:1;}
-  .sync-status{font-size:12px;color:var(--slate);white-space:nowrap;}
+  .sync-status{font-size:12px;color:var(--text-muted);white-space:nowrap;}
   main{flex:1;padding:20px 24px;}
   #grid-view, #form-view{display:none;}
   #grid-view.active, #form-view.active{display:block;}
-  #lead-grid{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+  #lead-grid{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .selection-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px;font-size:13px;color:var(--text-muted);flex-wrap:wrap;}
+  .selection-bar a{color:var(--violet);font-weight:600;cursor:pointer;text-decoration:underline;}
   .card-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
-  .lead-card{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);padding:16px;cursor:pointer;transition:border-color .15s;}
-  .lead-card:hover{border-color:var(--brass);}
-  .lead-card .name{font-weight:600;font-size:15px;margin-bottom:4px;}
-  .lead-card .meta{font-size:12px;color:var(--slate);margin-bottom:8px;}
-  .status-pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:500;background:#EFE9DC;color:var(--ink);}
-  .lead-card .remarks{font-size:13px;color:var(--ink);margin-top:8px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .lead-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .15s;position:relative;}
+  .lead-card:hover{border-color:var(--violet);box-shadow:0 6px 16px rgba(109,40,217,0.12);}
+  .lead-card.selected{border-color:var(--violet);background:#FBF8FF;}
+  .card-checkbox{position:absolute;top:14px;right:14px;width:18px;height:18px;accent-color:var(--violet);cursor:pointer;}
+  .lead-card .name{font-weight:700;font-size:15px;margin-bottom:4px;padding-right:24px;}
+  .lead-card .meta{font-size:12px;color:var(--text-muted);margin-bottom:8px;}
+  .status-pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;color:white;}
+  .lead-card .remarks{font-size:13px;color:var(--text);margin-top:8px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
   .lead-card .actions{display:flex;gap:8px;margin-top:10px;}
-  .action-btn{flex:1;padding:6px;border:1px solid var(--line);border-radius:var(--radius);background:var(--paper);font-size:12px;font-weight:500;text-align:center;text-decoration:none;color:var(--ink);}
-  .action-btn:hover{border-color:var(--brass);}
-  .action-btn.logged{color:var(--sage);border-color:var(--sage);}
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(27,36,48,0.5);align-items:center;justify-content:center;padding:20px;z-index:100;}
+  .action-btn{flex:1;padding:7px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);font-size:12px;font-weight:600;text-align:center;text-decoration:none;color:var(--text);}
+  .action-btn:hover{border-color:var(--violet);}
+  .action-btn.logged{color:var(--emerald);border-color:var(--emerald);background:#ECFDF5;}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(33,26,51,0.55);align-items:center;justify-content:center;padding:20px;z-index:100;}
   .modal-overlay.active{display:flex;}
-  .modal{background:var(--paper-raised);border-radius:var(--radius);max-width:520px;width:100%;max-height:90vh;overflow-y:auto;padding:28px;}
+  .modal{background:var(--surface);border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;padding:28px;}
   .modal h2{margin:0 0 20px;font-size:20px;}
   .modal-actions{display:flex;gap:10px;margin-top:20px;}
-  .btn-secondary{flex:1;padding:10px;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);font-size:14px;}
+  .btn-secondary{flex:1;padding:11px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-weight:600;}
   .btn-primary.modal-save{flex:1;}
-  .empty-state{text-align:center;padding:60px 20px;color:var(--slate);}
-  .warning-banner{background:#FBEFE3;border:1px solid var(--brass);color:var(--ink);padding:10px 16px;border-radius:var(--radius);font-size:13px;margin-bottom:14px;}
+  .btn-primary.danger{background:linear-gradient(90deg,#EF4444,#F97316);}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
+  .warning-banner{background:#FEF3E2;border:1.5px solid var(--amber);color:var(--text);padding:10px 16px;border-radius:8px;font-size:13px;margin-bottom:14px;}
+  .blast-list{max-height:140px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:16px;font-size:13px;background:var(--bg);}
+  .blast-list div{padding:3px 0;}
+  .blast-progress{font-size:13px;font-weight:600;color:var(--violet);margin-top:10px;text-align:center;min-height:18px;}
   @media (max-width:640px){.card-list{grid-template-columns:1fr;}header,.toolbar{padding:12px 16px;}main{padding:14px 16px;}}
 </style>
 </head>
@@ -105,14 +117,20 @@
     <select id="status-filter" onchange="applyFilters()"><option value="">All statuses</option></select>
     <div class="spacer"></div>
     <span class="sync-status" id="sync-status">Not synced yet</span>
-    <button class="sync-btn" onclick="refreshData(true)">↻ Refresh</button>
-    <button class="add-btn" id="add-lead-btn" onclick="addLead()">+ New lead</button>
+    <button class="btn-tool btn-sync" onclick="refreshData(true)">↻ Refresh</button>
+    <button class="btn-tool btn-blast" onclick="openBlastModal()">📲 WhatsApp Blast (<span id="selected-count">0</span>)</button>
+    <button class="btn-tool btn-add" id="add-lead-btn" onclick="addLead()">+ New lead</button>
   </div>
 
   <main>
     <div id="warning-area"></div>
     <div id="grid-view" class="active"><div id="lead-grid"></div></div>
     <div id="form-view">
+      <div class="selection-bar">
+        <span id="selection-summary">0 selected</span>
+        <a onclick="selectAllShown()">Select all shown</a>
+        <a onclick="clearSelection()">Clear selection</a>
+      </div>
       <div class="card-list" id="card-list"></div>
       <div class="empty-state" id="card-empty" style="display:none;">No leads match the current filters.</div>
     </div>
@@ -138,10 +156,48 @@
   </div>
 </div>
 
+<!-- ============ WHATSAPP BLAST MODAL ============ -->
+<div class="modal-overlay" id="blast-modal">
+  <div class="modal">
+    <h2>📲 WhatsApp Blast</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:-12px;margin-bottom:16px;">
+      Opens each selected lead's WhatsApp chat pre-filled with your message, one at a time, paced by the interval below.
+      WhatsApp requires you to tap Send yourself in each chat — this just saves you the typing and pacing.
+    </p>
+    <div class="blast-list" id="blast-list"></div>
+    <div class="field">
+      <label>Message (use {name} to personalize)</label>
+      <textarea id="blast-message" style="min-height:80px;" placeholder="Hi {name}, following up on...">Hi {name}, just following up on your enquiry — still keen to have a chat?</textarea>
+    </div>
+    <div class="field">
+      <label>Interval between sends (seconds)</label>
+      <input id="blast-interval" type="number" min="5" value="20">
+    </div>
+    <div class="blast-progress" id="blast-progress"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeBlastModal()" id="blast-close-btn">Cancel</button>
+      <button class="btn-primary modal-save" id="blast-start-btn" onclick="startBlast()">Start Blast</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ============ CONFIG ============ */
 const WEB_APP_URL = 'PASTE_YOUR_DEPLOYED_BACKEND_URL_HERE'; // from deploying Backend.gs
 const POLL_INTERVAL_MS = 25000;
+
+const STATUS_COLORS = {
+  'NEW': '#3B82F6', 'FOLLOW UP': '#F59E0B', 'FOLLOW UP APPT': '#8B5CF6',
+  'NO ANSWER': '#F97316', 'APPOINTMENT': '#10B981', 'NOT INTERESTED': '#6B7280',
+  'PRANK LEAD': '#EF4444', 'BOOKED': '#EC4899',
+};
+const FALLBACK_PALETTE = ['#0EA5E9','#A855F7','#14B8A6','#F43F5E','#84CC16','#6366F1'];
+function colorForStatus(status){
+  if(STATUS_COLORS[status]) return STATUS_COLORS[status];
+  let hash = 0;
+  for(let i=0;i<status.length;i++) hash = status.charCodeAt(i) + ((hash<<5)-hash);
+  return FALLBACK_PALETTE[Math.abs(hash) % FALLBACK_PALETTE.length];
+}
 
 let currentAgent = null;   // { name, role }
 let allLeads = [];
@@ -150,6 +206,8 @@ let table = null;
 let editingLead = null;
 let lastSyncTime = null;
 let pollTimer = null;
+let selectedKeys = new Set();
+let blastCancelled = false;
 
 /* ============ API HELPER ============ */
 async function api(action, params = {}) {
@@ -159,6 +217,8 @@ async function api(action, params = {}) {
   const res = await fetch(url.toString());
   return res.json();
 }
+
+function leadKey(lead){ return `${lead.sheetId}||${lead.tab}||${lead.row}`; }
 
 /* ============ LOGIN ============ */
 async function handleLogin(){
@@ -206,7 +266,6 @@ async function startApp(){
   const statusSelect = document.getElementById('m-status');
   statusOptions.forEach(s => statusSelect.innerHTML += `<option>${s}</option>`);
 
-  // Cache-first: render instantly from last known data, then refresh silently in the background
   const cached = localStorage.getItem('csg_leads_cache');
   if(cached){
     allLeads = JSON.parse(cached);
@@ -300,7 +359,7 @@ function buildGrid(){
     {title:"Last Status Change", field:"lastStatusChange", width:190, headerTooltip:"Auto-set when Status is edited"},
     {title:"Last Remark", field:"lastRemark", width:110, headerTooltip:"Auto-set when Remarks is edited"},
     {title:"Last Call", field:"lastCall", width:110, headerTooltip:"Auto-set by the Call button in Card view"},
-    {title:"Last WhatsApp", field:"lastWhatsapp", width:110, headerTooltip:"Auto-set by the WhatsApp button in Card view"},
+    {title:"Last WhatsApp", field:"lastWhatsapp", width:110, headerTooltip:"Auto-set by the WhatsApp button or Blast"},
   ];
   if(currentAgent.role === 'boss'){
     cols.splice(1,0,{title:"Agent", field:"agent", width:100});
@@ -327,7 +386,7 @@ function buildGrid(){
   });
 }
 
-/* ============ CARD VIEW ============ */
+/* ============ CARD VIEW + SELECTION ============ */
 function renderCards(){
   const list = document.getElementById('card-list');
   const empty = document.getElementById('card-empty');
@@ -335,16 +394,20 @@ function renderCards(){
   list.innerHTML = '';
   empty.style.display = rows.length ? 'none' : 'block';
 
-  rows.forEach((lead, idx) => {
+  rows.forEach((lead) => {
+    const key = leadKey(lead);
     const card = document.createElement('div');
-    card.className = 'lead-card';
+    card.className = 'lead-card' + (selectedKeys.has(key) ? ' selected' : '');
     card.onclick = () => openModal(lead);
     const lastCallText = lead.lastCall ? `Called ${lead.lastCall}` : 'Call';
     const lastWaText = lead.lastWhatsapp ? `WA sent ${lead.lastWhatsapp}` : 'WhatsApp';
+    const pillColor = lead.status ? colorForStatus(lead.status) : null;
     card.innerHTML = `
+      <input type="checkbox" class="card-checkbox" ${selectedKeys.has(key) ? 'checked' : ''}
+        onclick="event.stopPropagation(); toggleSelect('${key}')">
       <div class="name">${escapeHtml(lead.name || 'Unnamed')}</div>
       <div class="meta">${escapeHtml(lead.project || '')} · ${escapeHtml(lead.contact || 'No contact')}${currentAgent.role==='boss' ? ' · ' + escapeHtml(lead.agent) : ''}</div>
-      ${lead.status ? `<span class="status-pill">${escapeHtml(lead.status)}</span>` : ''}
+      ${lead.status ? `<span class="status-pill" style="background:${pillColor}">${escapeHtml(lead.status)}</span>` : ''}
       <div class="remarks">${escapeHtml(lead.remarks || '')}</div>
       <div class="actions">
         <a class="action-btn ${lead.lastCall ? 'logged' : ''}" href="tel:${escapeHtml(lead.contact||'')}" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'call')" title="${escapeHtml(lastCallText)}">📞 Call</a>
@@ -353,6 +416,27 @@ function renderCards(){
     `;
     list.appendChild(card);
   });
+  updateSelectionUI();
+}
+
+function toggleSelect(key){
+  if(selectedKeys.has(key)) selectedKeys.delete(key); else selectedKeys.add(key);
+  renderCards();
+}
+
+function selectAllShown(){
+  getFiltered().forEach(l => selectedKeys.add(leadKey(l)));
+  renderCards();
+}
+
+function clearSelection(){
+  selectedKeys.clear();
+  renderCards();
+}
+
+function updateSelectionUI(){
+  document.getElementById('selected-count').textContent = selectedKeys.size;
+  document.getElementById('selection-summary').textContent = `${selectedKeys.size} selected`;
 }
 
 function escapeHtml(str){
@@ -419,7 +503,6 @@ function addLead(){
 
 /* ============ CALL / WHATSAPP AUTO-TIMESTAMP ============ */
 async function logAction(sheetId, tab, row, type){
-  // Fire-and-forget-ish: don't block the tel:/wa.me navigation, just log in the background
   const result = await api('logAction', { sheetId, tab, row, type });
   if(result.success){
     const lead = allLeads.find(l => l.sheetId===sheetId && l.tab===tab && l.row===Number(row));
@@ -429,6 +512,72 @@ async function logAction(sheetId, tab, row, type){
       renderCards();
       localStorage.setItem('csg_leads_cache', JSON.stringify(allLeads));
     }
+  }
+}
+
+/* ============ WHATSAPP BLAST ============ */
+function openBlastModal(){
+  if(selectedKeys.size === 0){
+    alert('Tick at least one lead in Card view first (checkbox in the top-right of each card).');
+    return;
+  }
+  const selectedLeads = allLeads.filter(l => selectedKeys.has(leadKey(l)));
+  const withContact = selectedLeads.filter(l => (l.contact || '').replace(/[^0-9]/g,'').length > 5);
+  const listEl = document.getElementById('blast-list');
+  listEl.innerHTML = selectedLeads.map(l => {
+    const hasContact = (l.contact || '').replace(/[^0-9]/g,'').length > 5;
+    return `<div>${hasContact ? '✅' : '⚠️ no valid number —'} ${escapeHtml(l.name || 'Unnamed')} (${escapeHtml(l.contact||'—')})</div>`;
+  }).join('');
+  document.getElementById('blast-progress').textContent =
+    withContact.length < selectedLeads.length ? `${selectedLeads.length - withContact.length} lead(s) will be skipped — no valid number` : '';
+  document.getElementById('blast-start-btn').disabled = false;
+  document.getElementById('blast-start-btn').textContent = 'Start Blast';
+  document.getElementById('blast-modal').classList.add('active');
+}
+
+function closeBlastModal(){
+  blastCancelled = true;
+  document.getElementById('blast-modal').classList.remove('active');
+}
+
+async function startBlast(){
+  const selectedLeads = allLeads.filter(l => selectedKeys.has(leadKey(l)) && (l.contact||'').replace(/[^0-9]/g,'').length > 5);
+  const messageTemplate = document.getElementById('blast-message').value.trim();
+  const interval = Math.max(5, Number(document.getElementById('blast-interval').value) || 20);
+  if(!messageTemplate || selectedLeads.length === 0) return;
+
+  blastCancelled = false;
+  const startBtn = document.getElementById('blast-start-btn');
+  const closeBtn = document.getElementById('blast-close-btn');
+  startBtn.disabled = true;
+  closeBtn.textContent = 'Stop';
+  const progressEl = document.getElementById('blast-progress');
+
+  for(let i = 0; i < selectedLeads.length; i++){
+    if(blastCancelled) break;
+    const lead = selectedLeads[i];
+    const msg = messageTemplate.replace(/\{name\}/g, lead.name || 'there');
+    const phone = (lead.contact || '').replace(/[^0-9]/g,'');
+    const win = window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+
+    if(!win){
+      progressEl.textContent = '⚠️ Popup blocked — click the popup icon in your address bar, choose "Always allow", then Start Blast again.';
+      break;
+    }
+
+    await logAction(lead.sheetId, lead.tab, lead.row, 'whatsapp');
+    progressEl.textContent = `Sent ${i+1} of ${selectedLeads.length}` +
+      (i < selectedLeads.length - 1 ? ` — next in ${interval}s` : ' — done!');
+
+    if(i < selectedLeads.length - 1 && !blastCancelled){
+      await new Promise(resolve => setTimeout(resolve, interval * 1000));
+    }
+  }
+
+  startBtn.disabled = false;
+  closeBtn.textContent = 'Close';
+  if(!blastCancelled){
+    clearSelection();
   }
 }
 </script>
