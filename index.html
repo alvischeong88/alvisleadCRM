@@ -57,6 +57,11 @@
   .selection-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px;font-size:13px;color:var(--text-muted);flex-wrap:wrap;}
   .selection-bar a{color:var(--violet);font-weight:600;cursor:pointer;text-decoration:underline;}
   .card-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+  .kanban-board{display:flex;gap:14px;overflow-x:auto;padding-bottom:14px;align-items:flex-start;}
+  .kanban-column{flex:0 0 280px;background:var(--bg);border-radius:var(--radius);padding:12px;max-height:calc(100vh - 300px);display:flex;flex-direction:column;}
+  .kanban-header{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:8px;margin-bottom:10px;color:white;font-weight:700;font-size:13px;}
+  .kanban-count{background:rgba(255,255,255,0.3);padding:1px 8px;border-radius:99px;font-size:11px;}
+  .kanban-stack{overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:2px;}
   .lead-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .15s;position:relative;}
   .lead-card:hover{border-color:var(--violet);box-shadow:0 6px 16px rgba(109,40,217,0.12);}
   .lead-card.selected{border-color:var(--violet);background:#FBF8FF;}
@@ -236,6 +241,35 @@ async function api(action, params = {}) {
 function leadKey(lead){ return `${lead.sheetId}||${lead.tab}||${lead.row}`; }
 function asText(v){ return String(v ?? ''); }
 function phoneDigits(v){ return asText(v).replace(/[^0-9]/g,''); }
+
+// Loosely parses the various date/time formats found across your sheets
+// ("10/09/2026 15:04 [App] X→Y", "11/9/26 3:58 PM", "30/8/26") into a Date.
+function parseTimestampLoose(str){
+  if(!str) return null;
+  const s = asText(str).trim();
+  const m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:[, ]+(\d{1,2}):(\d{2})\s*(AM|PM)?)?/i);
+  if(!m) return null;
+  let [, d, mo, y, h, mi, ap] = m;
+  d = parseInt(d); mo = parseInt(mo); y = parseInt(y);
+  if(y < 100) y += 2000;
+  h = h ? parseInt(h) : 0;
+  mi = mi ? parseInt(mi) : 0;
+  if(ap){
+    ap = ap.toUpperCase();
+    if(ap === 'PM' && h < 12) h += 12;
+    if(ap === 'AM' && h === 12) h = 0;
+  }
+  const dt = new Date(y, mo - 1, d, h, mi);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function mostRecentTimestamp(lead){
+  const candidates = [lead.lastStatusChange, lead.lastRemark, lead.lastCall, lead.lastWhatsapp, lead.date]
+    .map(parseTimestampLoose)
+    .filter(Boolean)
+    .map(d => d.getTime());
+  return candidates.length ? Math.max(...candidates) : -Infinity;
+}
 
 /* ============ LOGIN ============ */
 async function handleLogin(){
@@ -420,24 +454,14 @@ function buildGrid(){
   });
 }
 
-/* ============ CARD VIEW + SELECTION ============ */
-function renderCards(){
-  if(!currentAgent) return; // guard against a stray background refresh completing after logout
-  const list = document.getElementById('card-list');
-  const empty = document.getElementById('card-empty');
-  const rows = getFiltered();
-  list.innerHTML = '';
-  empty.style.display = rows.length ? 'none' : 'block';
-
-  rows.forEach((lead) => {
-    const key = leadKey(lead);
-    const card = document.createElement('div');
-    card.className = 'lead-card' + (selectedKeys.has(key) ? ' selected' : '');
-    card.onclick = () => openModal(lead);
-    const lastCallText = lead.lastCall ? `Called ${lead.lastCall}` : 'Call';
-    const lastWaText = lead.lastWhatsapp ? `WA sent ${lead.lastWhatsapp}` : 'WhatsApp';
-    const pillColor = lead.status ? colorForStatus(lead.status) : null;
-    card.innerHTML = `
+/* ============ CARD VIEW + SELECTION (KANBAN BY STATUS) ============ */
+function cardHTML(lead){
+  const key = leadKey(lead);
+  const lastCallText = lead.lastCall ? `Called ${lead.lastCall}` : 'Call';
+  const lastWaText = lead.lastWhatsapp ? `WA sent ${lead.lastWhatsapp}` : 'WhatsApp';
+  const pillColor = lead.status ? colorForStatus(lead.status) : null;
+  return `
+    <div class="lead-card ${selectedKeys.has(key) ? 'selected' : ''}" onclick="openModal(allLeads.find(l=>leadKey(l)==='${key}'))">
       <input type="checkbox" class="card-checkbox" ${selectedKeys.has(key) ? 'checked' : ''}
         onclick="event.stopPropagation(); toggleSelect('${key}')">
       <div class="name">${escapeHtml(lead.name || 'Unnamed')}</div>
@@ -448,9 +472,46 @@ function renderCards(){
         <a class="action-btn ${lead.lastCall ? 'logged' : ''}" href="tel:${escapeHtml(asText(lead.contact))}" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'call')" title="${escapeHtml(lastCallText)}">📞 Call</a>
         <a class="action-btn ${lead.lastWhatsapp ? 'logged' : ''}" href="https://wa.me/${escapeHtml(phoneDigits(lead.contact))}" target="_blank" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'whatsapp')" title="${escapeHtml(lastWaText)}">💬 WhatsApp</a>
       </div>
-    `;
-    list.appendChild(card);
+    </div>
+  `;
+}
+
+function renderCards(){
+  if(!currentAgent) return; // guard against a stray background refresh completing after logout
+  const board = document.getElementById('card-list');
+  const empty = document.getElementById('card-empty');
+  const rows = getFiltered();
+  empty.style.display = rows.length ? 'none' : 'block';
+  board.className = 'kanban-board';
+  board.innerHTML = '';
+
+  // Column order: official statuses first (even if empty, so the board structure is stable),
+  // then any custom status values found in the data that aren't in the official list, then unset.
+  const columns = [...statusOptions];
+  [...new Set(rows.map(l => l.status).filter(Boolean))].forEach(s => {
+    if(!columns.includes(s)) columns.push(s);
   });
+  columns.push('(no status)');
+
+  columns.forEach(statusName => {
+    const leadsInCol = rows.filter(l => (l.status || '(no status)') === statusName);
+    if(leadsInCol.length === 0 && statusName !== '(no status)' && !statusOptions.includes(statusName)) return;
+
+    leadsInCol.sort((a,b) => mostRecentTimestamp(b) - mostRecentTimestamp(a));
+
+    const col = document.createElement('div');
+    col.className = 'kanban-column';
+    const headerColor = statusName === '(no status)' ? '#9CA3AF' : colorForStatus(statusName);
+    col.innerHTML = `
+      <div class="kanban-header" style="background:${headerColor}">
+        <span>${escapeHtml(statusName)}</span>
+        <span class="kanban-count">${leadsInCol.length}</span>
+      </div>
+      <div class="kanban-stack">${leadsInCol.map(cardHTML).join('')}</div>
+    `;
+    board.appendChild(col);
+  });
+
   updateSelectionUI();
 }
 
