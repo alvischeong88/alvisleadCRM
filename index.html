@@ -1,738 +1,434 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Enquiry Ledger</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSG Property — Lead Desk</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/tabulator-tables@5.6.1/dist/css/tabulator.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@5.6.1/dist/js/tabulator.min.js"></script>
 <style>
   :root{
-    --ink:#1B2A41;
-    --ink-soft:#4B5A70;
-    --paper:#F7F5F0;
-    --surface:#FFFFFF;
-    --line:#DDD9CE;
-    --brass:#B8862F;
-    --brass-dark:#96691E;
-    --status-new:#5B7FA6;
-    --status-contact:#9C7B3E;
-    --status-viewing:#6E8B5E;
-    --status-negotiate:#B8862F;
-    --status-booked:#3E7A56;
-    --status-lost:#A4544A;
+    --ink:#1B2430; --paper:#F6F3ED; --paper-raised:#FFFFFF;
+    --brass:#B98A3D; --brass-dark:#8F6A2C; --sage:#4C7A63; --rust:#B24C3B;
+    --slate:#667085; --line:#E4DFD5; --radius:6px;
   }
   *{box-sizing:border-box;}
-  body{
-    margin:0;
-    font-family:'IBM Plex Sans', sans-serif;
-    background:var(--paper);
-    color:var(--ink);
-    -webkit-font-smoothing:antialiased;
-  }
-  h1,h2,h3,.serif{
-    font-family:'Newsreader', serif;
-    font-weight:500;
-    letter-spacing:-0.01em;
-  }
-  .app{
-    max-width:720px;
-    margin:0 auto;
-    min-height:100vh;
-    background:var(--surface);
-    border-left:1px solid var(--line);
-    border-right:1px solid var(--line);
-    display:flex;
-    flex-direction:column;
-  }
-  header.top{
-    padding:22px 20px 18px;
-    border-bottom:1px solid var(--line);
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    gap:12px;
-  }
-  header.top h1{
-    font-size:1.5rem;
-    margin:0;
-    color:var(--ink);
-  }
-  header.top .tag{
-    font-size:0.78rem;
-    color:var(--ink-soft);
-    margin-top:2px;
-  }
-  .who{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    font-size:0.85rem;
-    color:var(--ink-soft);
-  }
-  .who button{
-    background:none;
-    border:none;
-    color:var(--brass-dark);
-    cursor:pointer;
-    font-size:0.85rem;
-    padding:0;
-    text-decoration:underline;
-    text-underline-offset:2px;
-  }
-
-  /* ---------- Login ---------- */
-  .login-wrap{
-    flex:1;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:32px 24px;
-  }
-  .login-card{
-    width:100%;
-    max-width:360px;
-  }
-  .login-card h2{
-    font-size:1.6rem;
-    margin:0 0 6px;
-  }
-  .login-card p.lede{
-    color:var(--ink-soft);
-    font-size:0.92rem;
-    margin:0 0 26px;
-  }
-  label{
-    display:block;
-    font-size:0.78rem;
-    color:var(--ink-soft);
-    margin:0 0 6px;
-  }
-  select, input[type=text], input[type=tel], input[type=password], textarea{
-    width:100%;
-    padding:11px 12px;
-    font-size:0.95rem;
-    border:1px solid var(--line);
-    border-radius:3px;
-    background:var(--surface);
-    color:var(--ink);
-    font-family:'IBM Plex Sans', sans-serif;
-  }
-  select:focus, input:focus, textarea:focus{
-    outline:2px solid var(--brass);
-    outline-offset:1px;
-    border-color:var(--brass);
-  }
+  body{margin:0;font-family:'IBM Plex Sans',sans-serif;background:var(--paper);color:var(--ink);}
+  h1,h2,h3,.brand{font-family:'Fraunces',serif;}
+  #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .login-card{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);padding:40px 36px;width:100%;max-width:360px;position:relative;}
+  .login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--brass);border-radius:var(--radius) var(--radius) 0 0;}
+  .brand{font-size:22px;font-weight:600;margin:0 0 4px;}
+  .brand-sub{color:var(--slate);font-size:13px;margin:0 0 28px;}
   .field{margin-bottom:16px;}
-  .btn{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:6px;
-    padding:11px 18px;
-    border-radius:3px;
-    border:1px solid transparent;
-    font-size:0.9rem;
-    font-family:'IBM Plex Sans', sans-serif;
-    font-weight:500;
-    cursor:pointer;
-  }
-  .btn-primary{
-    background:var(--ink);
-    color:#fff;
-    width:100%;
-  }
-  .btn-primary:hover{background:#25395a;}
-  .btn-ghost{
-    background:transparent;
-    border:1px solid var(--line);
-    color:var(--ink);
-  }
-  .btn-ghost:hover{border-color:var(--ink);}
-  .error{
-    color:var(--status-lost);
-    font-size:0.85rem;
-    margin-top:12px;
-  }
-
-  /* ---------- Toolbar ---------- */
-  .toolbar{
-    padding:16px 20px;
-    display:flex;
-    gap:10px;
-    align-items:center;
-    border-bottom:1px solid var(--line);
-    flex-wrap:wrap;
-  }
-  .toolbar input[type=text]{flex:1; min-width:140px;}
-  .toolbar select{width:auto;}
-  .count-pill{
-    font-size:0.78rem;
-    color:var(--ink-soft);
-    white-space:nowrap;
-  }
-
-  /* ---------- List ---------- */
-  .list{
-    flex:1;
-    padding:6px 0 90px;
-  }
-  .empty{
-    padding:60px 24px;
-    text-align:center;
-    color:var(--ink-soft);
-  }
-  .empty .serif{font-size:1.3rem; display:block; margin-bottom:6px; color:var(--ink);}
-
-  .row{
-    padding:16px 20px;
-    border-bottom:1px solid var(--line);
-    border-left:4px solid var(--status-new);
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-    cursor:pointer;
-  }
-  .row:hover{background:#FBFAF7;}
-  .row-top{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:10px;
-  }
-  .row-name{
-    font-family:'Newsreader', serif;
-    font-size:1.15rem;
-  }
-  .row-agent{
-    font-size:0.72rem;
-    color:var(--ink-soft);
-  }
-  .status-chip{
-    font-size:0.72rem;
-    padding:3px 9px;
-    border-radius:12px;
-    color:#fff;
-    white-space:nowrap;
-  }
-  .row-meta{
-    font-size:0.8rem;
-    color:var(--ink-soft);
-    display:flex;
-    flex-wrap:wrap;
-    gap:4px 14px;
-  }
-  .row-remark{
-    font-size:0.85rem;
-    color:var(--ink);
-    opacity:0.85;
-  }
-  .row-actions{
-    display:flex;
-    gap:8px;
-    margin-top:4px;
-  }
-  .icon-btn{
-    border:1px solid var(--line);
-    background:var(--surface);
-    border-radius:3px;
-    padding:7px 12px;
-    font-size:0.8rem;
-    cursor:pointer;
-    color:var(--ink);
-  }
-  .icon-btn:hover{border-color:var(--brass); color:var(--brass-dark);}
-
-  /* ---------- FAB ---------- */
-  .fab{
-    position:fixed;
-    bottom:24px;
-    right:calc(50% - 360px + 24px);
-    background:var(--brass);
-    color:#fff;
-    border:none;
-    border-radius:50%;
-    width:56px;
-    height:56px;
-    font-size:1.6rem;
-    cursor:pointer;
-    box-shadow:0 4px 14px rgba(150,105,30,0.35);
-  }
-  @media (max-width:760px){
-    .fab{right:24px;}
-  }
-  .fab:hover{background:var(--brass-dark);}
-
-  /* ---------- Modal ---------- */
-  .overlay{
-    position:fixed;
-    inset:0;
-    background:rgba(27,42,65,0.45);
-    display:flex;
-    align-items:flex-end;
-    justify-content:center;
-    z-index:20;
-  }
-  @media (min-width:600px){
-    .overlay{align-items:center;}
-  }
-  .modal{
-    background:var(--surface);
-    width:100%;
-    max-width:480px;
-    max-height:92vh;
-    overflow-y:auto;
-    border-radius:8px 8px 0 0;
-    padding:24px 22px 28px;
-  }
-  @media (min-width:600px){
-    .modal{border-radius:8px;}
-  }
-  .modal h2{font-size:1.3rem; margin:0 0 4px;}
-  .modal .sub{font-size:0.8rem; color:var(--ink-soft); margin-bottom:20px;}
-  .modal-actions{
-    display:flex;
-    gap:10px;
-    margin-top:8px;
-  }
-  .close-x{
-    float:right;
-    background:none;
-    border:none;
-    font-size:1.3rem;
-    color:var(--ink-soft);
-    cursor:pointer;
-  }
-
-  /* ---------- Boss dashboard ---------- */
-  .dash-summary{
-    padding:18px 20px 6px;
-    display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(120px,1fr));
-    gap:10px;
-  }
-  .stat-card{
-    border:1px solid var(--line);
-    border-radius:4px;
-    padding:12px 14px;
-  }
-  .stat-card .num{
-    font-family:'Newsreader', serif;
-    font-size:1.6rem;
-    display:block;
-  }
-  .stat-card .lbl{
-    font-size:0.72rem;
-    color:var(--ink-soft);
-  }
-
-  .hidden{display:none !important;}
-  .loading{
-    text-align:center;
-    padding:40px;
-    color:var(--ink-soft);
-    font-size:0.9rem;
-  }
+  .field label{display:block;font-size:12px;font-weight:500;color:var(--slate);margin-bottom:6px;}
+  .field input, .field textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius);font-family:inherit;font-size:14px;background:var(--paper);}
+  .field input:focus, .field textarea:focus{outline:none;border-color:var(--brass);}
+  button{font-family:inherit;cursor:pointer;}
+  .btn-primary{width:100%;padding:11px;background:var(--ink);color:var(--paper);border:none;border-radius:var(--radius);font-size:14px;font-weight:500;}
+  .btn-primary:hover{background:var(--brass-dark);}
+  #login-error{color:var(--rust);font-size:13px;margin-top:12px;display:none;}
+  #app{display:none;min-height:100vh;flex-direction:column;}
+  header{background:var(--ink);color:var(--paper);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+  header .brand{color:var(--paper);font-size:18px;margin:0;}
+  .who{display:flex;align-items:center;gap:10px;font-size:13px;}
+  .badge{padding:3px 9px;border-radius:99px;font-size:11px;font-weight:500;background:var(--brass);color:var(--ink);}
+  .logout-link{color:var(--paper);opacity:0.7;background:none;border:none;font-size:13px;text-decoration:underline;}
+  .logout-link:hover{opacity:1;}
+  .toolbar{display:flex;align-items:center;gap:14px;padding:14px 24px;background:var(--paper-raised);border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  .tabs{display:flex;gap:4px;background:var(--paper);padding:4px;border-radius:var(--radius);}
+  .tab-btn{padding:8px 16px;border:none;background:transparent;border-radius:4px;font-size:13px;font-weight:500;color:var(--slate);}
+  .tab-btn.active{background:var(--ink);color:var(--paper);}
+  select, .add-btn, .sync-btn{padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius);font-family:inherit;font-size:13px;background:var(--paper-raised);}
+  .add-btn{background:var(--sage);color:white;border:none;font-weight:500;}
+  .sync-btn{background:var(--paper-raised);color:var(--ink);}
+  .spacer{flex:1;}
+  .sync-status{font-size:12px;color:var(--slate);white-space:nowrap;}
+  main{flex:1;padding:20px 24px;}
+  #grid-view, #form-view{display:none;}
+  #grid-view.active, #form-view.active{display:block;}
+  #lead-grid{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+  .card-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+  .lead-card{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);padding:16px;cursor:pointer;transition:border-color .15s;}
+  .lead-card:hover{border-color:var(--brass);}
+  .lead-card .name{font-weight:600;font-size:15px;margin-bottom:4px;}
+  .lead-card .meta{font-size:12px;color:var(--slate);margin-bottom:8px;}
+  .status-pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:500;background:#EFE9DC;color:var(--ink);}
+  .lead-card .remarks{font-size:13px;color:var(--ink);margin-top:8px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .lead-card .actions{display:flex;gap:8px;margin-top:10px;}
+  .action-btn{flex:1;padding:6px;border:1px solid var(--line);border-radius:var(--radius);background:var(--paper);font-size:12px;font-weight:500;text-align:center;text-decoration:none;color:var(--ink);}
+  .action-btn:hover{border-color:var(--brass);}
+  .action-btn.logged{color:var(--sage);border-color:var(--sage);}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(27,36,48,0.5);align-items:center;justify-content:center;padding:20px;z-index:100;}
+  .modal-overlay.active{display:flex;}
+  .modal{background:var(--paper-raised);border-radius:var(--radius);max-width:520px;width:100%;max-height:90vh;overflow-y:auto;padding:28px;}
+  .modal h2{margin:0 0 20px;font-size:20px;}
+  .modal-actions{display:flex;gap:10px;margin-top:20px;}
+  .btn-secondary{flex:1;padding:10px;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);font-size:14px;}
+  .btn-primary.modal-save{flex:1;}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--slate);}
+  .warning-banner{background:#FBEFE3;border:1px solid var(--brass);color:var(--ink);padding:10px 16px;border-radius:var(--radius);font-size:13px;margin-bottom:14px;}
+  @media (max-width:640px){.card-list{grid-template-columns:1fr;}header,.toolbar{padding:12px 16px;}main{padding:14px 16px;}}
 </style>
 </head>
 <body>
 
-<div class="app">
-
-  <!-- LOGIN -->
-  <div id="loginScreen" class="login-wrap">
-    <div class="login-card">
-      <h2 class="serif">Enquiry Ledger</h2>
-      <p class="lede">Sign in to view and update your client enquiries.</p>
-      <div class="field">
-        <label for="loginName">Your name</label>
-        <select id="loginName"><option value="">Loading agents…</option></select>
-      </div>
-      <div class="field">
-        <label for="loginPin">PIN</label>
-        <input type="password" id="loginPin" inputmode="numeric" placeholder="••••" />
-      </div>
-      <button class="btn btn-primary" onclick="doLogin()">Sign in</button>
-      <div id="loginError" class="error hidden"></div>
-    </div>
+<div id="login-screen">
+  <div class="login-card">
+    <p class="brand">CSG Property</p>
+    <p class="brand-sub">Lead Desk — sign in to continue</p>
+    <div class="field"><label for="login-user">Username</label><input id="login-user" type="text" placeholder="e.g. steph"></div>
+    <div class="field"><label for="login-pass">Password</label><input id="login-pass" type="password" placeholder="••••••"></div>
+    <button class="btn-primary" onclick="handleLogin()">Sign in</button>
+    <p id="login-error">Username or password is incorrect.</p>
   </div>
-
-  <!-- MAIN APP -->
-  <div id="mainScreen" class="hidden">
-    <header class="top">
-      <div>
-        <h1>Enquiry Ledger</h1>
-        <div class="tag" id="viewTag">My enquiries</div>
-      </div>
-      <div class="who">
-        <span id="whoName"></span>
-        <button onclick="logout()">Sign out</button>
-      </div>
-    </header>
-
-    <!-- Boss summary -->
-    <div id="bossDash" class="hidden">
-      <div class="dash-summary" id="statCards"></div>
-    </div>
-
-    <div class="toolbar">
-      <input type="text" id="searchBox" placeholder="Search name or contact…" oninput="renderList()" />
-      <select id="statusFilter" onchange="renderList()">
-        <option value="">All statuses</option>
-        <option>New</option>
-        <option>Contacted</option>
-        <option>Viewing Scheduled</option>
-        <option>Negotiating</option>
-        <option>Booked</option>
-        <option>Lost</option>
-      </select>
-      <select id="agentFilter" class="hidden" onchange="renderList()">
-        <option value="">All agents</option>
-      </select>
-      <span class="count-pill" id="countPill"></span>
-    </div>
-
-    <div class="list" id="list">
-      <div class="loading">Loading enquiries…</div>
-    </div>
-  </div>
-
-  <button class="fab hidden" id="fabAdd" onclick="openAddModal()" title="Add enquiry">+</button>
 </div>
 
-<!-- ADD/EDIT MODAL -->
-<div class="overlay hidden" id="editOverlay">
-  <div class="modal">
-    <button class="close-x" onclick="closeModal()">×</button>
-    <h2 class="serif" id="modalTitle">New enquiry</h2>
-    <div class="sub" id="modalSub"></div>
+<div id="app">
+  <header>
+    <p class="brand">CSG Property — Lead Desk</p>
+    <div class="who">
+      <span id="who-name"></span>
+      <span class="badge" id="who-role"></span>
+      <button class="logout-link" onclick="handleLogout()">Sign out</button>
+    </div>
+  </header>
 
-    <div class="field">
-      <label>Name</label>
-      <input type="text" id="fName" />
+  <div class="toolbar">
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-grid" onclick="switchTab('grid')">Grid view</button>
+      <button class="tab-btn" id="tab-form" onclick="switchTab('form')">Card view</button>
     </div>
-    <div class="field">
-      <label>Contact number</label>
-      <input type="tel" id="fContact" placeholder="e.g. 6012xxxxxxx" />
+    <select id="project-filter" onchange="applyFilters()"><option value="">All projects</option></select>
+    <select id="status-filter" onchange="applyFilters()"><option value="">All statuses</option></select>
+    <div class="spacer"></div>
+    <span class="sync-status" id="sync-status">Not synced yet</span>
+    <button class="sync-btn" onclick="refreshData(true)">↻ Refresh</button>
+    <button class="add-btn" id="add-lead-btn" onclick="addLead()">+ New lead</button>
+  </div>
+
+  <main>
+    <div id="warning-area"></div>
+    <div id="grid-view" class="active"><div id="lead-grid"></div></div>
+    <div id="form-view">
+      <div class="card-list" id="card-list"></div>
+      <div class="empty-state" id="card-empty" style="display:none;">No leads match the current filters.</div>
     </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="lead-modal">
+  <div class="modal">
+    <h2 id="modal-title">Lead details</h2>
+    <div class="field" id="f-project-wrap"><label>Project (tab)</label><select id="m-project" style="width:100%;"></select></div>
+    <div class="field"><label>Name</label><input id="m-name" type="text"></div>
+    <div class="field"><label>Contact</label><input id="m-contact" type="text"></div>
     <div class="field">
       <label>Status</label>
-      <select id="fStatus">
-        <option>New</option>
-        <option>Contacted</option>
-        <option>Viewing Scheduled</option>
-        <option>Negotiating</option>
-        <option>Booked</option>
-        <option>Lost</option>
-      </select>
+      <select id="m-status" style="width:100%;"><option value="">— none —</option></select>
     </div>
-    <div class="field">
-      <label>Customer profile</label>
-      <textarea id="fProfile" rows="2" placeholder="Budget, unit type, preferences…"></textarea>
-    </div>
-    <div class="field">
-      <label>Remarks</label>
-      <textarea id="fRemarks" rows="3" placeholder="Notes from your latest interaction…"></textarea>
-    </div>
-
+    <div class="field"><label>Remarks</label><textarea id="m-remarks" style="min-height:70px;"></textarea></div>
+    <div class="field" id="f-profile-wrap"><label>Customer profile</label><textarea id="m-profile" style="min-height:60px;"></textarea></div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveModal()">Save</button>
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary modal-save" onclick="saveModal()">Save changes</button>
     </div>
   </div>
 </div>
 
 <script>
-/* =========================================================
-   CONFIG — paste your Apps Script Web App URL here
-   ========================================================= */
-const API_URL = 'https://script.google.com/macros/s/AKfycbxlwIWPpsAyafjejwKLSVU5ZgUq6QCrKOdDbGXWep24heXqifEjrWm18pWLbB3vW7BQBg/exec';
+/* ============ CONFIG ============ */
+const WEB_APP_URL = 'PASTE_YOUR_DEPLOYED_BACKEND_URL_HERE'; // from deploying Backend.gs
+const POLL_INTERVAL_MS = 25000;
 
-/* =========================================================
-   STATE
-   ========================================================= */
-let session = null;        // { name, role }
-let enquiries = [];        // cached list
-let editingId = null;      // id of enquiry being edited, or null for "new"
+let currentAgent = null;   // { name, role }
+let allLeads = [];
+let statusOptions = [];
+let table = null;
+let editingLead = null;
+let lastSyncTime = null;
+let pollTimer = null;
 
-const STATUS_COLORS = {
-  'New': 'var(--status-new)',
-  'Contacted': 'var(--status-contact)',
-  'Viewing Scheduled': 'var(--status-viewing)',
-  'Negotiating': 'var(--status-negotiate)',
-  'Booked': 'var(--status-booked)',
-  'Lost': 'var(--status-lost)',
-};
-
-/* =========================================================
-   API HELPER — plain GET requests only (CORS-safe against
-   Apps Script web apps deployed with "Anyone" access)
-   ========================================================= */
+/* ============ API HELPER ============ */
 async function api(action, params = {}) {
-  const url = new URL(API_URL);
+  const url = new URL(WEB_APP_URL);
   url.searchParams.set('action', action);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   const res = await fetch(url.toString());
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.error || 'Request failed');
-  return data;
+  return res.json();
 }
 
-/* =========================================================
-   BOOT
-   ========================================================= */
-window.addEventListener('DOMContentLoaded', async () => {
-  const saved = sessionStorage.getItem('enquiryLedgerSession');
-  if (saved) {
-    session = JSON.parse(saved);
-    showMain();
-  } else {
-    loadAgentList();
+/* ============ LOGIN ============ */
+async function handleLogin(){
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value.trim();
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if(!username || !password) return;
+
+  const result = await api('login', { username, password });
+  if(!result.success){
+    errEl.textContent = result.error || 'Username or password is incorrect.';
+    errEl.style.display = 'block';
+    return;
   }
+  currentAgent = { name: result.name, role: result.role };
+  localStorage.setItem('csg_agent', JSON.stringify(currentAgent));
+  startApp();
+}
+
+function handleLogout(){
+  localStorage.removeItem('csg_agent');
+  localStorage.removeItem('csg_leads_cache');
+  currentAgent = null;
+  clearInterval(pollTimer);
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  if(table){ table.destroy(); table = null; }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('csg_agent');
+  if(saved){ currentAgent = JSON.parse(saved); startApp(); }
 });
 
-async function loadAgentList() {
-  try {
-    const data = await api('agents');
-    const sel = document.getElementById('loginName');
-    sel.innerHTML = '<option value="">Select your name…</option>' +
-      data.agents.map(a => `<option value="${a}">${a}</option>`).join('');
-  } catch (err) {
-    document.getElementById('loginName').innerHTML = '<option value="">Could not load agent list</option>';
+async function startApp(){
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('who-name').textContent = currentAgent.name;
+  document.getElementById('who-role').textContent = currentAgent.role === 'boss' ? 'Boss' : 'Agent';
+  document.getElementById('add-lead-btn').style.display = currentAgent.role === 'boss' ? 'none' : 'inline-block';
+
+  const statusResult = await api('getStatusOptions');
+  statusOptions = statusResult.statuses || [];
+  const statusSelect = document.getElementById('m-status');
+  statusOptions.forEach(s => statusSelect.innerHTML += `<option>${s}</option>`);
+
+  // Cache-first: render instantly from last known data, then refresh silently in the background
+  const cached = localStorage.getItem('csg_leads_cache');
+  if(cached){
+    allLeads = JSON.parse(cached);
+    buildFilters();
+    buildGrid();
+    renderCards();
+    document.getElementById('sync-status').textContent = 'Showing last known data…';
+  } else {
+    buildGrid();
   }
+
+  await refreshData(false);
+  setInterval(updateSyncLabel, 1000);
+  pollTimer = setInterval(() => refreshData(false), POLL_INTERVAL_MS);
 }
 
-/* =========================================================
-   LOGIN / LOGOUT
-   ========================================================= */
-async function doLogin() {
-  const name = document.getElementById('loginName').value;
-  const pin = document.getElementById('loginPin').value;
-  const errBox = document.getElementById('loginError');
-  errBox.classList.add('hidden');
-  if (!name || !pin) {
-    errBox.textContent = 'Please select your name and enter your PIN.';
-    errBox.classList.remove('hidden');
+/* ============ DATA ============ */
+async function refreshData(manual){
+  const result = await api('getLeads', { name: currentAgent.name, role: currentAgent.role });
+  if(!result.success){
+    document.getElementById('warning-area').innerHTML =
+      `<div class="warning-banner">Could not load leads: ${result.error}</div>`;
     return;
   }
-  try {
-    const res = await api('login', { name, pin });
-    session = { name: res.name, role: res.role };
-    sessionStorage.setItem('enquiryLedgerSession', JSON.stringify(session));
-    showMain();
-  } catch (err) {
-    errBox.textContent = err.message;
-    errBox.classList.remove('hidden');
+  allLeads = result.leads || [];
+  lastSyncTime = new Date();
+  updateSyncLabel();
+  localStorage.setItem('csg_leads_cache', JSON.stringify(allLeads));
+
+  const warnEl = document.getElementById('warning-area');
+  if(result.warnings && result.warnings.length){
+    warnEl.innerHTML = `<div class="warning-banner">Some agent sheets could not be loaded: ${result.warnings.join(' · ')}</div>`;
+  } else {
+    warnEl.innerHTML = '';
   }
+
+  buildFilters();
+  if(table) table.setData(getFiltered());
+  renderCards();
 }
 
-function logout() {
-  sessionStorage.removeItem('enquiryLedgerSession');
-  session = null;
-  document.getElementById('mainScreen').classList.add('hidden');
-  document.getElementById('loginScreen').classList.remove('hidden');
+function updateSyncLabel(){
+  const el = document.getElementById('sync-status');
+  if(!lastSyncTime){ el.textContent = 'Not synced yet'; return; }
+  const secs = Math.floor((new Date() - lastSyncTime) / 1000);
+  el.textContent = secs < 5 ? 'Synced just now' : `Synced ${secs}s ago`;
 }
 
-/* =========================================================
-   MAIN VIEW
-   ========================================================= */
-function showMain() {
-  document.getElementById('loginScreen').classList.add('hidden');
-  document.getElementById('mainScreen').classList.remove('hidden');
-  document.getElementById('fabAdd').classList.remove('hidden');
-  document.getElementById('whoName').textContent = `${session.name} · ${session.role === 'boss' ? 'Boss view' : 'Agent'}`;
-  document.getElementById('viewTag').textContent = session.role === 'boss' ? 'All agents' : 'My enquiries';
-
-  if (session.role === 'boss') {
-    document.getElementById('bossDash').classList.remove('hidden');
-    document.getElementById('agentFilter').classList.remove('hidden');
-  }
-  fetchEnquiries();
+/* ============ FILTERS ============ */
+function buildFilters(){
+  const projects = [...new Set(allLeads.map(l => l.project).filter(Boolean))].sort();
+  const statuses = [...new Set(allLeads.map(l => l.status).filter(Boolean))].sort();
+  const pf = document.getElementById('project-filter');
+  const sf = document.getElementById('status-filter');
+  const prevP = pf.value, prevS = sf.value;
+  pf.innerHTML = '<option value="">All projects</option>' + projects.map(p=>`<option>${p}</option>`).join('');
+  sf.innerHTML = '<option value="">All statuses</option>' + statuses.map(s=>`<option>${s}</option>`).join('');
+  pf.value = projects.includes(prevP) ? prevP : '';
+  sf.value = statuses.includes(prevS) ? prevS : '';
 }
 
-async function fetchEnquiries() {
-  document.getElementById('list').innerHTML = '<div class="loading">Loading enquiries…</div>';
-  try {
-    const data = await api('list', { agent: session.name, role: session.role });
-    enquiries = data.rows;
-    if (session.role === 'boss') {
-      populateAgentFilter();
-      renderStats();
-    }
-    renderList();
-  } catch (err) {
-    document.getElementById('list').innerHTML = `<div class="empty">Could not load enquiries.<br>${err.message}</div>`;
-  }
+function getFiltered(){
+  const p = document.getElementById('project-filter').value;
+  const s = document.getElementById('status-filter').value;
+  return allLeads.filter(l => (!p || l.project===p) && (!s || l.status===s));
 }
 
-function populateAgentFilter() {
-  const sel = document.getElementById('agentFilter');
-  const current = sel.value;
-  const names = [...new Set(enquiries.map(r => r.AGENT).filter(Boolean))].sort();
-  sel.innerHTML = '<option value="">All agents</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
-  sel.value = current;
+function applyFilters(){
+  if(table) table.setData(getFiltered());
+  renderCards();
 }
 
-function renderStats() {
-  const total = enquiries.length;
-  const byStatus = {};
-  enquiries.forEach(r => { byStatus[r.STATUS] = (byStatus[r.STATUS] || 0) + 1; });
-  const cards = [
-    { num: total, lbl: 'Total enquiries' },
-    ...Object.entries(byStatus).map(([status, n]) => ({ num: n, lbl: status })),
+function switchTab(tab){
+  document.getElementById('tab-grid').classList.toggle('active', tab==='grid');
+  document.getElementById('tab-form').classList.toggle('active', tab==='form');
+  document.getElementById('grid-view').classList.toggle('active', tab==='grid');
+  document.getElementById('form-view').classList.toggle('active', tab==='form');
+  if(tab==='grid' && table) table.redraw();
+}
+
+/* ============ GRID VIEW ============ */
+function buildGrid(){
+  const cols = [
+    {title:"Date", field:"date", editor:"input", width:100},
+    {title:"Name", field:"name", editor:"input", width:150},
+    {title:"Contact", field:"contact", editor:"input", width:130},
+    {title:"Project", field:"project", width:120},
+    {title:"Status", field:"status", editor:"list", editorParams:{values:statusOptions}, width:140},
+    {title:"Remarks", field:"remarks", editor:"textarea", width:280},
+    {title:"Customer Profile", field:"customerProfile", editor:"textarea", width:200},
+    {title:"Last Status Change", field:"lastStatusChange", width:190, headerTooltip:"Auto-set when Status is edited"},
+    {title:"Last Remark", field:"lastRemark", width:110, headerTooltip:"Auto-set when Remarks is edited"},
+    {title:"Last Call", field:"lastCall", width:110, headerTooltip:"Auto-set by the Call button in Card view"},
+    {title:"Last WhatsApp", field:"lastWhatsapp", width:110, headerTooltip:"Auto-set by the WhatsApp button in Card view"},
   ];
-  document.getElementById('statCards').innerHTML = cards.map(c =>
-    `<div class="stat-card"><span class="num serif">${c.num}</span><span class="lbl">${c.lbl}</span></div>`
-  ).join('');
-}
+  if(currentAgent.role === 'boss'){
+    cols.splice(1,0,{title:"Agent", field:"agent", width:100});
+  }
 
-function renderList() {
-  const q = document.getElementById('searchBox').value.trim().toLowerCase();
-  const statusF = document.getElementById('statusFilter').value;
-  const agentF = document.getElementById('agentFilter').value;
-
-  let rows = enquiries.filter(r => {
-    if (statusF && r.STATUS !== statusF) return false;
-    if (agentF && r.AGENT !== agentF) return false;
-    if (q) {
-      const hay = `${r.NAME} ${r.CONTACT}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
+  table = new Tabulator("#lead-grid", {
+    data: getFiltered(),
+    layout:"fitDataStretch",
+    height:"calc(100vh - 260px)",
+    clipboard:true,
+    clipboardPasteAction:"range",
+    columns: cols,
   });
 
-  // sort by most recent activity
-  rows.sort((a, b) => latestActivity(b) - latestActivity(a));
-
-  document.getElementById('countPill').textContent = `${rows.length} shown`;
-
-  const list = document.getElementById('list');
-  if (rows.length === 0) {
-    list.innerHTML = `<div class="empty"><span class="serif">No enquiries yet</span>Tap the + button to log a new client enquiry.</div>`;
-    return;
-  }
-
-  list.innerHTML = rows.map(r => rowTemplate(r)).join('');
-}
-
-function parseTs(s) {
-  if (!s) return 0;
-  // expects dd/MM/yyyy HH:mm
-  const [datePart, timePart] = String(s).split(' ');
-  if (!datePart) return 0;
-  const [d, m, y] = datePart.split('/').map(Number);
-  const [hh, mm] = (timePart || '0:0').split(':').map(Number);
-  return new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0).getTime();
-}
-
-function latestActivity(r) {
-  return Math.max(parseTs(r['LAST STATUS CHANGE']), parseTs(r['LAST REMARK']), parseTs(r['LAST CALL']), parseTs(r['LAST WHATSAPP']), parseTs(r['DATE']));
-}
-
-function rowTemplate(r) {
-  const color = STATUS_COLORS[r.STATUS] || 'var(--status-new)';
-  const lastBits = [
-    r['LAST STATUS CHANGE'] ? `Status: ${r['LAST STATUS CHANGE']}` : null,
-    r['LAST CALL'] ? `Called: ${r['LAST CALL']}` : null,
-    r['LAST WHATSAPP'] ? `WhatsApp: ${r['LAST WHATSAPP']}` : null,
-  ].filter(Boolean).join(' &nbsp;·&nbsp; ');
-
-  return `
-    <div class="row" style="border-left-color:${color}" onclick="openEditModal('${r.ID}')">
-      <div class="row-top">
-        <div>
-          <div class="row-name">${escapeHtml(r.NAME || 'Unnamed')}</div>
-          ${session.role === 'boss' ? `<div class="row-agent">${escapeHtml(r.AGENT || '')}</div>` : ''}
-        </div>
-        <span class="status-chip" style="background:${color}">${escapeHtml(r.STATUS || 'New')}</span>
-      </div>
-      <div class="row-meta">
-        <span>${escapeHtml(r.CONTACT || '')}</span>
-        ${lastBits ? `<span>${lastBits}</span>` : ''}
-      </div>
-      ${r.REMARKS ? `<div class="row-remark">${escapeHtml(r.REMARKS)}</div>` : ''}
-      <div class="row-actions" onclick="event.stopPropagation()">
-        <button class="icon-btn" onclick="logCall('${r.ID}')">📞 Log call</button>
-        <button class="icon-btn" onclick="logWhatsapp('${r.ID}', '${escapeAttr(r.CONTACT)}')">💬 Log WhatsApp</button>
-      </div>
-    </div>
-  `;
-}
-
-function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-function escapeAttr(s){ return String(s ?? '').replace(/'/g, ''); }
-
-/* =========================================================
-   QUICK ACTIONS
-   ========================================================= */
-async function logCall(id) {
-  await api('logcall', { id });
-  await fetchEnquiries();
-}
-
-async function logWhatsapp(id, contact) {
-  await api('logwhatsapp', { id });
-  await fetchEnquiries();
-  if (contact) {
-    const digits = contact.replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${digits}`, '_blank');
-  }
-}
-
-/* =========================================================
-   ADD / EDIT MODAL
-   ========================================================= */
-function openAddModal() {
-  editingId = null;
-  document.getElementById('modalTitle').textContent = 'New enquiry';
-  document.getElementById('modalSub').textContent = 'Logged under your name automatically.';
-  document.getElementById('fName').value = '';
-  document.getElementById('fContact').value = '';
-  document.getElementById('fStatus').value = 'New';
-  document.getElementById('fProfile').value = '';
-  document.getElementById('fRemarks').value = '';
-  document.getElementById('editOverlay').classList.remove('hidden');
-}
-
-function openEditModal(id) {
-  const r = enquiries.find(x => x.ID === id);
-  if (!r) return;
-  editingId = id;
-  document.getElementById('modalTitle').textContent = 'Update enquiry';
-  document.getElementById('modalSub').textContent = session.role === 'boss' ? `Agent: ${r.AGENT}` : '';
-  document.getElementById('fName').value = r.NAME || '';
-  document.getElementById('fContact').value = r.CONTACT || '';
-  document.getElementById('fStatus').value = r.STATUS || 'New';
-  document.getElementById('fProfile').value = r['CUSTOMER PROFILE'] || '';
-  document.getElementById('fRemarks').value = r.REMARKS || '';
-  document.getElementById('editOverlay').classList.remove('hidden');
-}
-
-function closeModal() {
-  document.getElementById('editOverlay').classList.add('hidden');
-}
-
-async function saveModal() {
-  const name = document.getElementById('fName').value.trim();
-  const contact = document.getElementById('fContact').value.trim();
-  const status = document.getElementById('fStatus').value;
-  const profile = document.getElementById('fProfile').value.trim();
-  const remarks = document.getElementById('fRemarks').value.trim();
-
-  if (!name) { alert('Please enter a name.'); return; }
-
-  try {
-    if (editingId) {
-      await api('update', { id: editingId, name, contact, status, profile, remarks });
-    } else {
-      await api('add', { name, contact, status, profile, remarks, agent: session.name });
+  table.on("cellEdited", async (cell) => {
+    const row = cell.getRow().getData();
+    const field = cell.getField();
+    const value = cell.getValue();
+    const result = await api('updateLead', { sheetId: row.sheetId, tab: row.tab, row: row.row, field, value });
+    if(!result.success){
+      alert('Could not save: ' + result.error);
+      cell.restoreOldValue();
     }
-    closeModal();
-    await fetchEnquiries();
-  } catch (err) {
-    alert('Could not save: ' + err.message);
+  });
+}
+
+/* ============ CARD VIEW ============ */
+function renderCards(){
+  const list = document.getElementById('card-list');
+  const empty = document.getElementById('card-empty');
+  const rows = getFiltered();
+  list.innerHTML = '';
+  empty.style.display = rows.length ? 'none' : 'block';
+
+  rows.forEach((lead, idx) => {
+    const card = document.createElement('div');
+    card.className = 'lead-card';
+    card.onclick = () => openModal(lead);
+    const lastCallText = lead.lastCall ? `Called ${lead.lastCall}` : 'Call';
+    const lastWaText = lead.lastWhatsapp ? `WA sent ${lead.lastWhatsapp}` : 'WhatsApp';
+    card.innerHTML = `
+      <div class="name">${escapeHtml(lead.name || 'Unnamed')}</div>
+      <div class="meta">${escapeHtml(lead.project || '')} · ${escapeHtml(lead.contact || 'No contact')}${currentAgent.role==='boss' ? ' · ' + escapeHtml(lead.agent) : ''}</div>
+      ${lead.status ? `<span class="status-pill">${escapeHtml(lead.status)}</span>` : ''}
+      <div class="remarks">${escapeHtml(lead.remarks || '')}</div>
+      <div class="actions">
+        <a class="action-btn ${lead.lastCall ? 'logged' : ''}" href="tel:${escapeHtml(lead.contact||'')}" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'call')" title="${escapeHtml(lastCallText)}">📞 Call</a>
+        <a class="action-btn ${lead.lastWhatsapp ? 'logged' : ''}" href="https://wa.me/${escapeHtml((lead.contact||'').replace(/[^0-9]/g,''))}" target="_blank" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'whatsapp')" title="${escapeHtml(lastWaText)}">💬 WhatsApp</a>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
+}
+
+/* ============ MODAL ============ */
+function openModal(lead){
+  editingLead = lead || null;
+  document.getElementById('modal-title').textContent = lead ? 'Edit lead' : 'New lead';
+
+  const projectSelect = document.getElementById('m-project');
+  const myProjects = [...new Set(allLeads.filter(l => l.agent === currentAgent.name).map(l => l.tab))];
+  projectSelect.innerHTML = myProjects.map(p => `<option>${p}</option>`).join('');
+  document.getElementById('f-project-wrap').style.display = lead ? 'none' : 'block';
+
+  document.getElementById('m-name').value = lead?.name || '';
+  document.getElementById('m-contact').value = lead?.contact || '';
+  document.getElementById('m-status').value = lead?.status || '';
+  document.getElementById('m-remarks').value = lead?.remarks || '';
+  document.getElementById('m-profile').value = lead?.customerProfile || '';
+  document.getElementById('f-profile-wrap').style.display = (lead && lead.customerProfile === undefined) ? 'none' : 'block';
+
+  document.getElementById('lead-modal').classList.add('active');
+}
+
+function closeModal(){
+  document.getElementById('lead-modal').classList.remove('active');
+  editingLead = null;
+}
+
+async function saveModal(){
+  const name = document.getElementById('m-name').value.trim();
+  const contact = document.getElementById('m-contact').value.trim();
+  const status = document.getElementById('m-status').value;
+  const remarks = document.getElementById('m-remarks').value.trim();
+  const customerProfile = document.getElementById('m-profile').value.trim();
+
+  if(editingLead){
+    const updates = { name, contact, status, remarks, customerProfile };
+    for(const [field, value] of Object.entries(updates)){
+      if(editingLead[field] !== value){
+        const result = await api('updateLead', { sheetId: editingLead.sheetId, tab: editingLead.tab, row: editingLead.row, field, value });
+        if(!result.success){ alert('Could not save ' + field + ': ' + result.error); return; }
+      }
+    }
+  } else {
+    const myAgentRow = allLeads.find(l => l.agent === currentAgent.name);
+    const sheetId = myAgentRow ? myAgentRow.sheetId : null;
+    const tab = document.getElementById('m-project').value;
+    if(!sheetId || !tab){ alert('Could not determine which sheet to add this lead to.'); return; }
+    const result = await api('addLead', { sheetId, tab, name, contact, status, remarks, customerProfile, date: new Date().toISOString().slice(0,10) });
+    if(!result.success){ alert('Could not create lead: ' + result.error); return; }
+  }
+  closeModal();
+  await refreshData(true);
+}
+
+function addLead(){
+  openModal(null);
+}
+
+/* ============ CALL / WHATSAPP AUTO-TIMESTAMP ============ */
+async function logAction(sheetId, tab, row, type){
+  // Fire-and-forget-ish: don't block the tel:/wa.me navigation, just log in the background
+  const result = await api('logAction', { sheetId, tab, row, type });
+  if(result.success){
+    const lead = allLeads.find(l => l.sheetId===sheetId && l.tab===tab && l.row===Number(row));
+    if(lead){
+      const ts = new Date().toLocaleString();
+      if(type === 'call') lead.lastCall = ts; else lead.lastWhatsapp = ts;
+      renderCards();
+      localStorage.setItem('csg_leads_cache', JSON.stringify(allLeads));
+    }
   }
 }
 </script>
