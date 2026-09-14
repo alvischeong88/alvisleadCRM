@@ -187,9 +187,16 @@ const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxHV5lBCFef8OPZvMZE
 const POLL_INTERVAL_MS = 25000;
 
 const STATUS_COLORS = {
-  'NEW': '#3B82F6', 'FOLLOW UP': '#F59E0B', 'FOLLOW UP APPT': '#8B5CF6',
-  'NO ANSWER': '#F97316', 'APPOINTMENT': '#10B981', 'NOT INTERESTED': '#6B7280',
-  'PRANK LEAD': '#EF4444', 'BOOKED': '#EC4899',
+  'NEW': '#94A3B8',            // neutral (was white in original — invisible on a white pill)
+  'FOLLOW UP': '#EAB308',      // yellow
+  'FOLLOW UP APPT': '#92D050', // green
+  'APPOINTMENT': '#F59E0B',    // orange
+  'NO ANSWER': '#9CA3AF',      // grey
+  'NOT INTERESTED': '#9CA3AF', // grey
+  'PRANK LEAD': '#EF4444',     // red
+  'LOAN PROBLEM': '#9CA3AF',   // grey
+  'OTHERS LOCATION': '#9CA3AF',// grey
+  'WRONG NUMBER': '#9CA3AF',   // grey
 };
 const FALLBACK_PALETTE = ['#0EA5E9','#A855F7','#14B8A6','#F43F5E','#84CC16','#6366F1'];
 function colorForStatus(status){
