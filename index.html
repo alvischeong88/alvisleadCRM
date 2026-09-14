@@ -215,6 +215,7 @@ let lastSyncTime = null;
 let pollTimer = null;
 let selectedKeys = new Set();
 let blastCancelled = false;
+let syncLabelTimer = null;
 
 /* ============ API HELPER ============ */
 async function api(action, params = {}) {
@@ -226,6 +227,8 @@ async function api(action, params = {}) {
 }
 
 function leadKey(lead){ return `${lead.sheetId}||${lead.tab}||${lead.row}`; }
+function asText(v){ return String(v ?? ''); }
+function phoneDigits(v){ return asText(v).replace(/[^0-9]/g,''); }
 
 /* ============ LOGIN ============ */
 async function handleLogin(){
@@ -251,6 +254,7 @@ function handleLogout(){
   localStorage.removeItem('csg_leads_cache');
   currentAgent = null;
   clearInterval(pollTimer);
+  clearInterval(syncLabelTimer);
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   if(table){ table.destroy(); table = null; }
@@ -285,7 +289,8 @@ async function startApp(){
   }
 
   await refreshData(false);
-  setInterval(updateSyncLabel, 1000);
+  clearInterval(syncLabelTimer);
+  syncLabelTimer = setInterval(updateSyncLabel, 1000);
   pollTimer = setInterval(() => refreshData(false), POLL_INTERVAL_MS);
 }
 
@@ -366,8 +371,8 @@ function buildGrid(){
     {title:"📞💬", field:"_contact", width:70, hozAlign:"center", headerSort:false,
       formatter:(cell) => {
         const lead = cell.getRow().getData();
-        const phone = (lead.contact||'').replace(/[^0-9]/g,'');
-        return `<a href="tel:${lead.contact||''}" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'call')" style="margin-right:8px;text-decoration:none;font-size:15px;" title="Call">📞</a>` +
+        const phone = phoneDigits(lead.contact);
+        return `<a href="tel:${asText(lead.contact)}" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'call')" style="margin-right:8px;text-decoration:none;font-size:15px;" title="Call">📞</a>` +
                `<a href="https://wa.me/${phone}" target="_blank" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'whatsapp')" style="text-decoration:none;font-size:15px;" title="WhatsApp">💬</a>`;
       }
     },
@@ -410,6 +415,7 @@ function buildGrid(){
 
 /* ============ CARD VIEW + SELECTION ============ */
 function renderCards(){
+  if(!currentAgent) return; // guard against a stray background refresh completing after logout
   const list = document.getElementById('card-list');
   const empty = document.getElementById('card-empty');
   const rows = getFiltered();
@@ -432,8 +438,8 @@ function renderCards(){
       ${lead.status ? `<span class="status-pill" style="background:${pillColor}">${escapeHtml(lead.status)}</span>` : ''}
       <div class="remarks">${escapeHtml(lead.remarks || '')}</div>
       <div class="actions">
-        <a class="action-btn ${lead.lastCall ? 'logged' : ''}" href="tel:${escapeHtml(lead.contact||'')}" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'call')" title="${escapeHtml(lastCallText)}">📞 Call</a>
-        <a class="action-btn ${lead.lastWhatsapp ? 'logged' : ''}" href="https://wa.me/${escapeHtml((lead.contact||'').replace(/[^0-9]/g,''))}" target="_blank" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'whatsapp')" title="${escapeHtml(lastWaText)}">💬 WhatsApp</a>
+        <a class="action-btn ${lead.lastCall ? 'logged' : ''}" href="tel:${escapeHtml(asText(lead.contact))}" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'call')" title="${escapeHtml(lastCallText)}">📞 Call</a>
+        <a class="action-btn ${lead.lastWhatsapp ? 'logged' : ''}" href="https://wa.me/${escapeHtml(phoneDigits(lead.contact))}" target="_blank" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'whatsapp')" title="${escapeHtml(lastWaText)}">💬 WhatsApp</a>
       </div>
     `;
     list.appendChild(card);
@@ -549,11 +555,11 @@ function openBlastModal(){
     return;
   }
   const selectedLeads = allLeads.filter(l => selectedKeys.has(leadKey(l)));
-  const withContact = selectedLeads.filter(l => (l.contact || '').replace(/[^0-9]/g,'').length > 5);
+  const withContact = selectedLeads.filter(l => phoneDigits(l.contact).length > 5);
   const listEl = document.getElementById('blast-list');
   listEl.innerHTML = selectedLeads.map(l => {
-    const hasContact = (l.contact || '').replace(/[^0-9]/g,'').length > 5;
-    return `<div>${hasContact ? '✅' : '⚠️ no valid number —'} ${escapeHtml(l.name || 'Unnamed')} (${escapeHtml(l.contact||'—')})</div>`;
+    const hasContact = phoneDigits(l.contact).length > 5;
+    return `<div>${hasContact ? '✅' : '⚠️ no valid number —'} ${escapeHtml(l.name || 'Unnamed')} (${escapeHtml(asText(l.contact) || '—')})</div>`;
   }).join('');
   document.getElementById('blast-progress').textContent =
     withContact.length < selectedLeads.length ? `${selectedLeads.length - withContact.length} lead(s) will be skipped — no valid number` : '';
@@ -568,7 +574,7 @@ function closeBlastModal(){
 }
 
 async function startBlast(){
-  const selectedLeads = allLeads.filter(l => selectedKeys.has(leadKey(l)) && (l.contact||'').replace(/[^0-9]/g,'').length > 5);
+  const selectedLeads = allLeads.filter(l => selectedKeys.has(leadKey(l)) && phoneDigits(l.contact).length > 5);
   const messageTemplate = document.getElementById('blast-message').value.trim();
   const interval = Math.max(5, Number(document.getElementById('blast-interval').value) || 20);
   if(!messageTemplate || selectedLeads.length === 0) return;
@@ -584,7 +590,7 @@ async function startBlast(){
     if(blastCancelled) break;
     const lead = selectedLeads[i];
     const msg = messageTemplate.replace(/\{name\}/g, lead.name || 'there');
-    const phone = (lead.contact || '').replace(/[^0-9]/g,'');
+    const phone = phoneDigits(lead.contact);
     const win = window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
 
     if(!win){
