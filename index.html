@@ -343,12 +343,27 @@ function switchTab(tab){
   document.getElementById('tab-form').classList.toggle('active', tab==='form');
   document.getElementById('grid-view').classList.toggle('active', tab==='grid');
   document.getElementById('form-view').classList.toggle('active', tab==='form');
-  if(tab==='grid' && table) table.redraw();
+  if(tab==='grid' && table) table.redraw(true);
+  if(tab==='form') renderCards();
 }
 
 /* ============ GRID VIEW ============ */
 function buildGrid(){
   const cols = [
+    {title:"✓", field:"_select", width:44, hozAlign:"center", headerSort:false,
+      formatter:(cell) => {
+        const key = leadKey(cell.getRow().getData());
+        return `<input type="checkbox" ${selectedKeys.has(key) ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectFromGrid('${key}')">`;
+      }
+    },
+    {title:"📞💬", field:"_contact", width:70, hozAlign:"center", headerSort:false,
+      formatter:(cell) => {
+        const lead = cell.getRow().getData();
+        const phone = (lead.contact||'').replace(/[^0-9]/g,'');
+        return `<a href="tel:${lead.contact||''}" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'call')" style="margin-right:8px;text-decoration:none;font-size:15px;" title="Call">📞</a>` +
+               `<a href="https://wa.me/${phone}" target="_blank" onclick="event.stopPropagation(); logAction('${lead.sheetId}','${lead.tab}',${lead.row},'whatsapp')" style="text-decoration:none;font-size:15px;" title="WhatsApp">💬</a>`;
+      }
+    },
     {title:"Date", field:"date", editor:"input", width:100},
     {title:"Name", field:"name", editor:"input", width:150},
     {title:"Contact", field:"contact", editor:"input", width:130},
@@ -358,11 +373,11 @@ function buildGrid(){
     {title:"Customer Profile", field:"customerProfile", editor:"textarea", width:200},
     {title:"Last Status Change", field:"lastStatusChange", width:190, headerTooltip:"Auto-set when Status is edited"},
     {title:"Last Remark", field:"lastRemark", width:110, headerTooltip:"Auto-set when Remarks is edited"},
-    {title:"Last Call", field:"lastCall", width:110, headerTooltip:"Auto-set by the Call button in Card view"},
+    {title:"Last Call", field:"lastCall", width:110, headerTooltip:"Auto-set by the Call button"},
     {title:"Last WhatsApp", field:"lastWhatsapp", width:110, headerTooltip:"Auto-set by the WhatsApp button or Blast"},
   ];
   if(currentAgent.role === 'boss'){
-    cols.splice(1,0,{title:"Agent", field:"agent", width:100});
+    cols.splice(3,0,{title:"Agent", field:"agent", width:100});
   }
 
   table = new Tabulator("#lead-grid", {
@@ -422,6 +437,11 @@ function renderCards(){
 function toggleSelect(key){
   if(selectedKeys.has(key)) selectedKeys.delete(key); else selectedKeys.add(key);
   renderCards();
+}
+
+function toggleSelectFromGrid(key){
+  if(selectedKeys.has(key)) selectedKeys.delete(key); else selectedKeys.add(key);
+  updateSelectionUI();
 }
 
 function selectAllShown(){
